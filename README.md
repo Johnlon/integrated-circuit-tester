@@ -31,9 +31,10 @@ EasyEda
 -----
 
 - Its fun
-- It's time consuming
-- The power and ground lines should be made wider 
-- Tweak the default track separation and width so they are more robust and lower resistance 
+- Its time sink
+- The power and ground lines should be made wider - use design rules 
+- Tweak the default track separation and width so they are more robust and lower resistance - use design rules
+- Check the design rules violations for clearance errors before committing
 
 Arduino
 -----
@@ -106,7 +107,7 @@ NB: The high level voltage on the Zif socket is approx 4.8v.
 Software
 ========
 
-The approach I chosen is to use the serial console of the Arduino IDE as the interface to the test circuit. 
+The approach I've chosen is to use the serial console of the Arduino IDE as the interface to the test circuit. 
 
 You load the test program into the the Arduino IDE, edit the code trivally to select the test plan for the chip you are interested in and then send the program to the Arduino to run the tests.
 
