@@ -1,0 +1,7 @@
+{
+    "programmer": "AVR ISP",
+    "port": "COM6",
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328",
+    "sketch": "integrated-circuit-tester.ino"
+}
