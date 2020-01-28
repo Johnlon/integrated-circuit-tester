@@ -3,68 +3,149 @@ Integrated Circuit Tester
 
 This software accompanies a hardware design for an integrated circuit tester.
 
-Hardware design, pcb and Principal of Operation on EasyEda : https://easyeda.com/john.lonergan.sharing/integrated-circuit-tester
+Hardware design and pcbcan be found on EasyEda : https://easyeda.com/john.lonergan.sharing/integrated-circuit-tester
 
+**Unusual features of this implementation**:
+- verifies correct functioning of tristate outputs
+- able to differentiate equivalent logic devices that differ terms output type; open collector outputs vs regular push-pull outputs eg 7405 vs 7404
 
 Motivation
 ------
 
 There were various motivations for building this:
 - To test a bunch of chips I bought from eBay and AliExpress
-- To allow me to check my understanding of the functioning of certain chips. By writing a sequence of test scenarios and then checking that my understanding is correct.
+- To allow me to check my understanding of the functioning of certain interesting and rarely mentioned logic chips.
 - To learn something about Arduinos
 - To learn about EasyEda
 - To have some fun getting a PCB made up (not having to etch it myself like the old days) 
 - Nostalgia - I built something with a similar function at university in 1984 but it was a much bigger physically and hooked up to a BBC PC.
+
+This device was not intended to be used to identify IC's as I can read that off the top of the chip. However, the device can operate in identification mode if needed.
 
 Summary
 ------
 
 This device is intended to test 74** series chips but will work equally well with 4000 series CMOS or other 5v chips that don't need much supply current.
 
-This device can also be used to test drive an LED array or 7 segment display, with visual inspection to check the device's behaviour. Note that the LED must be able to tolerate the forward current resulting from the inline 150R resistors (approx 15mA). 
+This device can also be used to test drive a pattern on an LED array or 7 segment display, with visual inspection to check the device's behaviour is correct. Note that the LED must be able to tolerate the forward current resulting from the inline two 150R resistors (approx 15mA). 
+
+Usage
+=======
+
+Test case
+---------
+
+Specify a sequence of test cases using the following pin codes. These codes define the inputs and the expected outputs from the test subject.
+
+   - V=VCC of chip under test (set gpioL to high; set gpioH to high)
+   - G=GND of chip under test (set gpioL to low ; set gpioH to low)
+   - 1=set input pin of chip under test to logic high
+   - 0=set input pin of chip under test to logic low
+   - L=expect logic low output from chip under test
+   - H=expect logic high output from chip under test
+   - Z=expect high impedance output from chip under test
+   - X=dont care - pin gets set with a weak pull down
+  
+Also:
+   - /=a spacer for the input pattern that is ignored - use optionally as a left side vs right side separator for example for ease of reading or for whatever else you like
+
+For example the test case "111G/HHHV" would mean... test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pins 5,6,7 all expect to be outputs with logic high, and pin 8 is Vcc. 
+
+Test results
+--------
+
+The test results use these codes:
+   - .=a pass for that pin - ie expected output was found
+   - -=one of the top two pins - theres a hardware fault on those so dont put the
+   chip there
+   - _=the pin isn't an output so there's no test result
+   - H=a LOW was expected but HIGH was found
+   - L=a HIGH was expected but LOW was found
+   - h=a LOW was expected on the tristate test but HIGH was found
+   - l=a HIGH was expected on the tristate test but LOW was found
+
+Then ...
+-----
+
+Connect the tester circuit to the computer over the USB port and enable the serial console with the correct baud rate.
+
+Update the software to choose the chip you intend to test for by modifying the software - TBD.
+
+Place the chip being tested into the Zif placing the chip against the top of the Zif.
+
+Upload the program to the Arduino Nano.
+
+Observe the test results in the serial console. You will see each test case plus the results for that test case.
+
 
 What I learned
 ====
+
+Voltage Levels
+------
+
+-  HC logic chips data sheets say VCC may be as low as 2v typically
+-  HCT data sheets quote 4.5v as lowest Vcc but this is merely the min in order to maintain TTL compatibility. In reality HCT will run fine at lower Vcc.
+- LS will also run at lower voltages.
+  
+  See http://www.ti.com/lit/an/sdya009c/sdya009c.pdf - _Texas Instruments - Designing With Logic_
+  
+  Section 2.2 Behavior With Low Supply Voltages: _"TTL devices attain stability with a supply voltage of about 3.5v, and are fully functional at a typical voltage of 4v"_
+
+HC/HCT/LS will all run fine at lever voltages than 5v. This is handly because there will be a voltage drops below 5v when powering and driving the test chips from the GPIO pins. 
+
+On the Zif socket I measured a voltage of 4.7v-4.8v with a 5v supply. This voltage drop was less than I expected. 
+- The MCP23017 extender documents a high level output voltage of Vdd-0.7v, but perhaps thats a conservative value or perhaps I was measuring test pins driven by the Arduino...
+- The ATmega328P documentation guarantees a high of at between 4.7v and 4.8v on a 5v supply at 10mA load. 2mA would be 4.9v or more. See page http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf "Figure 29-10. I/O Pin Output Voltage versus Source Current"
+
+In anycase it's convenient that I'm seeing reasonable voltages on the Zif vs the needs of the various logic families.
 
 EasyEda
 -----
 
 - Its fun
 - Its time sink
-- The power and ground lines should be made wider - use design rules 
-- Tweak the default track separation and width so they are more robust and lower resistance - use design rules
-- Check the design rules violations for clearance errors before committing
+- The power and ground lines should be made wider than defaults - use design rules 
+- Tweak the default track separation and track width so they are more robust and lower resistance - use design rules
+- Check the design rules violations list for clearance errors before committing
 
-Arduino
+Arduino Nano
 -----
 
-- A6/A7 cannot be used as digital outouts, just digital inputs only
-- The I2C pins SCL/SDA are open collector and need pull ups - see more below
-- D13 is connected via a 1k resistor and an LED to ground so this can interfere with it's reliability as a digital input due to the pull down.
+- The analog A6/A7 lines cannot be used as digital outputs, just digital inputs only
+- The I2C pins SCL/SDA are open collector and need pull ups - but see more below
+- D13 is connected via a 1k resistor and an LED to ground so this can interfere with it's reliability as a digital input due to the pull down. IF it is to be used at al then it is intended to be used as an output. 
+- The header pins supplied with the Elegoo Arduino nano don't fit in a round pin DIP socket and the header pins are made of a metal that doesn't solder easily
+- There is a lot of confusing discussion on whether one needs to add pullups to the I2C bus lines
 
 __Do I or don't I need pullup resistors on the I2C lines SDA/SCL?__ 
-There is a lot of confusing info on this online, but I found an explanation of why some kind of pullup MUST be present ....
+There is a lot of confusing info on this online.
+
+Firstly, I found this explanation of why some kind of pullup MUST be present ....
  
-_"I2C bus drivers are "open drain", meaning that they can pull the corresponding signal line low, but cannot drive it high. Thus, there can be no bus contention where one device is trying to drive the line high while another tries to pull it low, eliminating the potential for damage to the drivers or excessive power dissipation in the system. Each signal line MUST HAVE a pull-up resistor on it, to restore the signal to high when no device is asserting it low."_
+- _"I2C bus drivers are "open drain", meaning that they can pull the corresponding signal line low, but cannot drive it high. Thus, there can be no bus contention where one device is trying to drive the line high while another tries to pull it low, eliminating the potential for damage to the drivers or excessive power dissipation in the system. Each signal line MUST HAVE a pull-up resistor on it, to restore the signal to high when no device is asserting it low."_
  
-However, for a physically short bus and where the voltages on each end are the same then a design doesn't need separate external pullups on the I2C pins. This is because the Ardunio Wire library turns on the internal pull up resistors in it's twi_init() called by Wire.begin() function on SDA & SCL. Doing this puts a weak-pull up on the I2C pins even though they are acting as outputs. Further digging explains that its possible to have the digital input pull ups turned on despite the pins acting as in/out I2C pins because the digital IO circuitry is in parallel to the I2C IO circuitry. Convenient!
+However, the I2C pins on the Ardunio have optional pull-up resistors. Conveniently, the Wire library turns on the internal pull up resistors in it's twi_init() called by Wire.begin() function on SDA & SCL. Doing this puts a weak-pull up on the I2C pins even though they are acting as outputs. Further digging explains that it is possible to have these digital input pull-ups turned on despite the pins acting as I2C outputs because the digital IO circuitry that contains the pull-up is in parallel to the I2C IO circuitry so they are not exclusive. Convenient!
+
+And, for a physically short bus and where the voltages on each end are the same then a design doesn't need additional external pullups on the I2C pins.
 
 Principal of operation 
 ====
 
-This circuit is designed to both to power a low power logic device and also exercise it's various states by applying a sequence of known inputs and verifying expected outputs.
+This circuit is designed to be able to power a low power logic device and also to determine if the device is healthy. It does this by applying a sequence of known inputs and verifying the expected outputs.
+
 The circuit is designed to verify regular H and L outputs but is also capable of verifying that a pin is in a high impedance "high-Z" state. 
 
-Two GPIO pins are dedicatd to test each pin of the chip under test.
-- a pin "GPIO-L" with a low resistance in-line 
-- a pin "GPIO-H" with a high resistance in-line
-Together these two GPIO pins make the a single in/out “test pin” that is attached to the pin of the chip under test.
+Two GPIO pins are dedicatd to test each pin of the chip under test. These two GPIO pins are each configured with an inline resistor and the rest of the dicsussion will refer to them as  
+- "GPIO-L" - the GPIO pin with a low low in-line resistor 
+- "GPIO-H" - the GPIO pin with a high value in-line resistor
+
+Together these two GPIO pins provide a single “test pin” that is attached to the pin of the chip under test.
 
 ![pin-config.png](pin-config.png)
 
-**GPIO-L and GPIO-H operate as a pair in one of four modes:
-**
+**GPIO-L and GPIO-H operate as a pair in one of four modes:**
+
 - Driving an input: Where the test subject's pin is a expected to be an input to that device, then GPIO-L is set to H or L as appropriate to drive the IC's input logic level; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
  
 - Testing for 1/0 output: Where the test subject's pin is expected to be bi-state output, then GPIO-L is configured as an input and is used to sense the state of the test IC's output pin; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
@@ -79,17 +160,19 @@ Choice of resistor values
 
 __GPIO-L__
 
-The resistor on GPIO-L is present solely to provide over-current protection. However, one of the modes of use for the trst pins is to drive VCC and GND of the test subject, so this resistor has to be low enough that it can source and sink sufficient current that the test chip will operate correctly.
+The resistor on GPIO-L is present solely to provide over-current protection. However, one of the modes of use for the test pins is to drive VCC and GND of the test subject, so this resistor has to be low enough that it can source and sink sufficient current that the test chip will operate correctly.
 
 However, the resistor can't be so small that it fails to provide short circuit protection to the GPIO pin.
 
-So we want the resistor to be a low value but not too low.
+So we want the resistor to be a low value, but not too low.
 
-In the end I went for 150R in the implementation because I figured all current paths would have at least two serial resistors meaning the path would typically be 2x150R=300R. This is probably unreliable logic because in some errant cases the shorted resistors might be in parallel, but I figure it's good enough. 
+In the end I went for 150R in the implementation because I figured all current paths would have at least two serial resistors meaning the path would typically be 2x150R=300R meaning about 15mA would pass at 5v. 
+
+This is probably unreliable logic because in some errant cases the shorted pins and their resistors might be in parallel and the effective resistance will be reduced, but I figure it's good enough. 
 
 __GPIO-H__
 
-GPIO-H is used solely in the high-Z detection case where it acts as a weak pull up/down and in all other tests GPIO-H is disabled and plays no part. 
+GPIO-H is used solely in the high-Z detection use case where it acts as a weak pull up/down and in all other tests GPIO-H is disabled and plays no part. 
 
 The high value resistor on GPIO-H is chosen so that this pin can apply a mild pullup/pulldown to the chip under test during that Z output state testing.
 
@@ -104,6 +187,8 @@ High Res : 10k
 
 NB: The high level voltage on the Zif socket is approx 4.8v.
 
+NB. This whole thing is probably over engineered and/or under engineered, but it does work as I built it. I suspect that cheap IC identification devices on eBay probably don't bother with series protection resistors at all and almost certainly can't detect tri-state devices - but I could be wrong. Leaving out either of these features would be a big simplification but I wasn't happy with the omitting short circuit current limiting resistors, which seem advisable when running the device in circuit identification mode where the software has no idea what's in the socket.  
+
 Software
 ========
 
@@ -111,14 +196,16 @@ The approach I've chosen is to use the serial console of the Arduino IDE as the 
 
 You load the test program into the the Arduino IDE, edit the code trivally to select the test plan for the chip you are interested in and then send the program to the Arduino to run the tests.
 
-Feedback on the test results is reported from the Arduino back to the serial console of the IDE. Make sure the baud rate in the console matches the program.
+Feedback on the test results is reported by the Arduino back to the serial console of the IDE. 
+
+NB. Make sure the baud rate in the console matches the program.
 
 I used the Arduino Nano and this doesn't support a file system so I can't include an onboard file with the test cases. Instead, I compile these into the Arduino program (sketch).
 
-Other databases
+Other databases of tests
 ===============
 
-The format of the test cases is backward compatible with https://github.com/akshaybaweja/Smart-IC-Tester, however this implementation also supports  tri-state detection capability.
+The format of the test cases used here is somewhat compatible with https://github.com/akshaybaweja/Smart-IC-Tester. This implementation differes in that it also supports tri-state detection capability.
 
 
 
@@ -132,3 +219,10 @@ https://cuneyt.aliustaoglu.biz/en/enabling-arduino-intellisense-with-visual-stud
 ALSO https://github.com/microsoft/vscode-arduino/issues/891
 
 VSCODE formatting that I used :     _"C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0, AllowShortBlocksOnASingleLine: true}"_
+
+How to fix the excessive arduino logging in VSCode
+--------
+
+"It seems the excessive debug logging is caused by running Java with -DDEBUG=true. Adding -DDEBUG=false to the C:\Program Files (x86)\Arduino\arduino_debug.l4j.ini fixes it for me."
+
+See https://github.com/microsoft/vscode-arduino/issues/891
