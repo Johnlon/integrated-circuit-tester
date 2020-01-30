@@ -1,96 +1,89 @@
-
-struct Scenario {
-  const char* test;
-  const char* name;
-  Scenario* next;
-
-  Scenario(const char* test, const char* tname)
-      : next(NULL), test(test), name(tname) {}
-};
-
-struct Chip {
-  const char* name;
-  const char* description;
-
-  Scenario* scenarios;
-  Chip* next;
-
-  Chip(const char* name, const char* desc)
-      : name(name), description(desc), scenarios(NULL), next(NULL) {}
-
-  Chip& scenario(const char* test, const char* tname) {
-    Scenario* s = new Scenario(test, tname);
-    if (this->scenarios != NULL) {
-      s->next = this->scenarios;
-    }
-    this->scenarios = s;
-    return *this;
-  }
-};
-
-Chip chips[] = {};
+#include "chip.h"
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Testing ...");
-
-
-  // 74244 dir 0=a2b, 1=b2a
+  mcp_setup();
+  
+  // 74245 pin 1 dir 0=a2b, 1=b2a
   // left side is port A
   // pin 19 of 20 is /OE
-  Chip c74244("74244", "Transceiver 8 bit");
-  c74244.scenario("XZZZZZZZZG/ZZZZZZZZ1V", "OE disabled")
+  Chip c74245("74245", "Transceiver 8 bit");
+  c74245.scenario("XZZZZZZZZG/ZZZZZZZZ1V", "OE disabled")
       .scenario("100000000G/LLLLLLLL0V", "A to B all low")
       .scenario("111111111G/HHHHHHHH0V", "A to B all high")
       .scenario("0LLLLLLLLG/000000000V", "B to A all low")
       .scenario("0HHHHHHHHG/111111110V", "B to A all high");
 
   Chip c74242("74242", "Transceiver Inverting 4 bit");
-  c74242.scenario("XZZZZZG/ZZZZZ1V", "OE disabled")
-      .scenario("10HHHHG000001V", "A to B all low")
-      .scenario("10LLLLG111101V", "A to B all high")
-      .scenario("000000GHHHH00V", "B to A all low")
-      .scenario("001111GLLLL00V", "B to A all high");
+  c74242.scenario("1ZZZZZG/ZZZZZ0V", "OEA and OEB both disabled")
+      .scenario("0ZZZZZG/ZZZZZ1V", "OEA and OEB both enabled")
+      .scenario("0Z0000G/HHHHZ1V", "A to B all low")
+      .scenario("0Z1111G/LLLLZ1V", "A to B all high")
+      .scenario("1ZHHHHG/0000Z1V", "B to A all low")
+      .scenario("1ZLLLLG/1111Z1V", "B to A all high");
 
-// only include the chips you want to include in the scan - reduces the program storage space needed
-  Chip chips[] = {c74244, c74242};
-  mcp_setup();
+  // only include the chips you want to include in the scan - reduces the
+  // program storage space needed
+  const Chip* chips[] = {&c74245, &c74242, NULL};
 
-  // socket empty self test
-  // test_ic("ZZZZZZZZZZ/ZZZZZZZZZZ", "Empty socket self test");
+  Serial.println("Testing ...");
 
+  // 11 pin each side socket empty self test - 11 because orig hw has bug on top
+  // row
+  // test_ic("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty socket self test");
 
-  // test_ic("XZZZZZZZZG/ZZZZZZZZ1V");  // 74245 - OE disabled
-  // test_ic("100000000G/LLLLLLLL0V");  // 74245 - A to B all low
-  // test_ic("111111111G/HHHHHHHH0V");  // 74245 - A to B all high
-  // test_ic("0LLLLLLLLG/000000000V");  // 74245 - B to A all low
-  // test_ic("0HHHHHHHHG/111111110V");  // 74245 - B to A all high
+//   // test_ic("XZZZZZZZZG/ZZZZZZZZ1V");  // 74245 - OE disabled
+//     reset();
+//     test_ic("100000000G/LLLLLLLL0V");  // 74245 - A to B all low
+//     test_ic("100000000G/LLLLLLLL0V");  // 74245 - A to B all low
+//     reset();
+//  //   test_ic("111111111G/HHHHHHHH0V");  // 74245 - A to B all high
+//     test_ic("100000000G/HHHHHHHH0V");  // 74245 - A to B all high
+//     reset();
+//  //   test_ic("111111111G/HHHHHHHH0V");  // 74245 - A to B all high
+//     test_ic("100100000G/HHHHHHHH0V");  // 74245 - A to B all high
+//     reset();
+//     test_ic("??????????/??????????");  // 74245 - A to B all high
+//   //  test_ic("0LLLLLLLLG/000000000V");  // 74245 - B to A all low
+//   //  test_ic("0HHHHHHHHG/111111110V");  // 74245 - B to A all high
 
+  identify(chips);
+
+  reset();
+  delay(1000000);
+}
+
+void identify(const Chip* chips[]) {
   // Work in progress - chip detection - test all scenarios
   Serial.println("\n=======================");
   Serial.println("IDENTIFYING ... ");
 
-  for (const Chip& chip : chips) {
+  int idx = 0;
+  while (chips[idx] != NULL) {
+    reset();
+
+    const Chip& chip = *chips[idx++];
+
     Serial.println("\nTesting: " + String(chip.name) + " : " +
                    String(chip.description));
 
     const Scenario* testcase = chip.scenarios;
     bool allok = true;
     while (testcase != NULL) {
+      // reset();
+
       bool ok = test_ic(testcase->test, testcase->name);
       if (!ok)
         allok = false;
-
       testcase = testcase->next;
     }
 
-    if (allok) {
-      Serial.println("! match for " + String(chip.name));
-    }
+    if (allok)
+      Serial.println("matches " + String(chip.name));
+    else
+      Serial.println("not " + String(chip.name));
   }
 
-  delay(1000000);
-  // reset();
+  reset();
 }
-
 void loop() {}

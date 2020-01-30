@@ -6,8 +6,6 @@
 #define PATCH '-'
 #endif
 
-#define IGNORE 'X'
-
 Adafruit_MCP23017 mcp1;
 Adafruit_MCP23017 mcp2;
 
@@ -33,6 +31,11 @@ void reset() {
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
 
+    // discharge/force to a definitive value - ie low
+    xPinMode(gpioH, OUTPUT);
+    xDigitalWrite(gpioH, LOW);
+        
+    // disconnect
     xPinMode(gpioL, INPUT);
     xPinMode(gpioH, INPUT);
   }
@@ -82,6 +85,27 @@ String patchScenario(String sin) {
   return PATCH + sin + PATCH;
 }
 
+String fillUnusedPins(const String& test) {
+  int unused = 2*unusedSlots(test.length());
+
+  String fill = "";
+  
+  while (unused -- > 0) { 
+    fill += "u";
+  }
+
+  String left = test.substring(0, test.length()/2);
+  String right = test.substring((test.length()/2), test.length());
+  
+  // Serial.println("IN    "+ test);
+  // Serial.println("LEFT  "+ left);
+  // Serial.println("RIGHT "+ right);
+  // Serial.println("FILL  "+ fill);
+
+  return left + fill + right;
+}
+
+
 /*
    param "scenario" is the test case input and output state definition.
    even a trivial ic will require a sequence of these cases to tests it
@@ -98,9 +122,12 @@ String patchScenario(String sin) {
    L=expect logic low output from chip under test
    H=expect logic high output from chip under test
    Z=expect high impedance output from chip under test
-   X=dont care - gets set with a weak pull down
-   /=ignored - use optionally as a left side right side separator for ease of
-   reading or whatever else
+   X=dont care - gets set with a weak pull down to avoid floating in case it's an input
+   ?=just read and display the signal at the pin
+
+   Also ...
+   /=ignored - use optionally as a left side right side separator for ease of reading or whatever else
+   u=unused pin added automatically to fill in any pins the test says the chip isn't using - will be tested for high impedance   
 
    On output:
    .=pass for that pin
@@ -111,16 +138,18 @@ String patchScenario(String sin) {
    L=a HIGH was expected but LOW was found
    h=a LOW was expected on the tristate test but HIGH was found
    l=a HIGH was expected on the tristate test but LOW was found
-
-   
+   1=the pattern was ? and the value detected is 1
+   0=the pattern was ? and the value detected is 0
 
    returns true if test passes, false otherwise
 */
-boolean test_ic(String scenario) {
+boolean test_ic(const String& scenario) {
   test_ic(scenario, "");
 }
+
+
 boolean test_ic(String scenario, String name) {
-  Serial.println("Scenario : " + scenario + " " + name);
+  //reset();
 
   scenario.replace("/", "");
 
@@ -128,7 +157,10 @@ boolean test_ic(String scenario, String name) {
                     // down the Zif by on position
   scenario = patchScenario(scenario);
 #endif
-  Serial.println("Testcase : " + scenario);
+
+  scenario = fillUnusedPins(scenario);
+
+  Serial.print("Testcase : " + scenario + "   " + name);
 
   int clkPin = -1;
   int pins = scenario.length();
@@ -144,13 +176,12 @@ boolean test_ic(String scenario, String name) {
     int gpioH = pinPair.gpioH;
 
     switch (scenario[i]) {
-      case PATCH:   // dont care - set to weak pull up so as not to leave
-                    // floating
-      case IGNORE:  // dont care - set to weak pull up so as not to leave
-                    // floating
-        xPinMode(gpioL, INPUT);
-        xPinMode(gpioH, OUTPUT);
-        xDigitalWrite(gpioH, LOW);
+      case PATCH:   
+      case 'X':  
+        // dont care - set to weak pull up so as not to leave floating
+        xPinMode(gpioL, INPUT_PULLUP);
+        xPinMode(gpioH, INPUT);
+        //xDigitalWrite(gpioH, LOW);
         break;
 
       case 'V':
@@ -166,186 +197,170 @@ boolean test_ic(String scenario, String name) {
 
       // INPUTS TO IC
       case '1':
-        xPinMode(gpioL,
-                 OUTPUT);  // pull up in case IC pin is erroneously an input to
-                           // avoid floating it and causing high current on HC
-        xPinMode(gpioH, INPUT);  // the pullup won't affect the sense if the pin
-                                 // is genuinely high or low
+        xPinMode(gpioL, OUTPUT);  
+        xDigitalWrite(gpioL, HIGH);
+        xPinMode(gpioH, INPUT);  
         break;
       case '0':
-        xPinMode(gpioL,
-                 OUTPUT);  // pull up in case IC pin is erroneously an input to
-                           // avoid floating it and causing high current on HC
-        xPinMode(gpioH, INPUT);  // the pullup won't affect the sense if the pin
-                                 // is genuinely high or low
+        xPinMode(gpioL, OUTPUT); 
+        xDigitalWrite(gpioL, LOW);
+        xPinMode(gpioH, INPUT); 
         break;
-
+      
+      // FOR CLK INPUT
+      case 'C':
+        clkPin = gpioL;
+        xPinMode(gpioL, OUTPUT);
+        xDigitalWrite(gpioL, LOW); // low intially
+        xPinMode(gpioH, INPUT);  
+        break;
+    
       // EXPECTATIONS OF THE OUTPUTS OF THE IC
       case 'L':
-        xPinMode(gpioL,
-                 INPUT_PULLUP);  // weakly pull up in case IC pin is erroneously
-                                 // an input to avoid floating it and causing
-                                 // high current on HC
-        xPinMode(gpioL,
-                 INPUT);  // we will set the gpio output to the opposite of the
-                          // expected result - this allows us to distinguish a
-                          // floating pin from a definite logic
-        xPinMode(gpioH, INPUT);  // the pullup won't affect the sense if the pin
-                                 // is genuinely high or low
+        // TODO Do a Z-like test and expect it to always return L - ie pull is ineffective
+        // or is it enought to gently pull it the opposite direction? << temp solution 
+        //  ztest is better and we could show a Z in the output
+        xPinMode(gpioL, INPUT); 
+        xPinMode(gpioH, OUTPUT);  
+        xDigitalWrite(gpioH, HIGH);
         break;
       case 'H':
-        xPinMode(gpioL,
-                 INPUT_PULLUP);  // weakly pull up in case IC pin is erroneously
-                                 // an input to avoid floating it and causing
-                                 // high current on HC
-        xPinMode(gpioL,
-                 INPUT);  // we will set the gpio output to the opposite of the
-                          // expected result - this allows us to distinguish a
-                          // floating pin from a definite logic
-        xPinMode(gpioH, INPUT);  // the pullup won't affect the sense if the pin
-                                 // is genuinely high or low
+        // TODO: Do a Z-like test and expect it to always return L - ie pull is ineffective
+        // or is it enought to gently pull it the opposite direction? << temp solution 
+        //- ztest is better and we could show a Z in the output
+        xPinMode(gpioL, INPUT);  
+        xPinMode(gpioH, OUTPUT);  
+        xDigitalWrite(gpioH, LOW);
         break;
 
       // FOR Z OUTPUT - there will be two tests one with gpioL as H and another
       // as L to see if this
+      case 'u':
       case 'Z':
-        xPinMode(gpioL, INPUT);   // the pullup/down won't affect the sense if
-                                  // the IC pin is genuinely high or low, but if
-                                  // it's tristate then it will swing with gpioL
-        xPinMode(gpioH, OUTPUT);  // we will pull this pin in both directions
+        xPinMode(gpioL, INPUT);   
+        xPinMode(gpioH, OUTPUT);  
         break;
 
-      // FOR CLK INPUT
-      case 'C':
-        xPinMode(
-            gpioL,
-            INPUT_PULLUP);  // pull up in case IC pin is erroneously an input to
-                            // avoid floating it and causing high current on HC
-        xPinMode(gpioH, INPUT);  // the pullup won't affect the sense if the pin
-                                 // is genuinely high or low but if it's
-                                 // tristate then it will swing
+      case '?':
+        // TODO: test for Z and we could show a Z in the output
+        xPinMode(gpioL, INPUT);  
+        xPinMode(gpioH, INPUT);  
         break;
+
     }
   }
 
   delay(5);
 
-  // Serial.println("setting inputs of test chip");
-
-  // setup the inputs to the IC under test
-  for (int i = 0; i < pins; i++) {
-    Pins pinPair = toGPIOPin(i, pins);
-    int gpioL = pinPair.gpioL;
-    int gpioH = pinPair.gpioH;
-
-    switch (scenario[i]) {
-      case IGNORE:  // ?? what is X - unused ?? ??
-        xDigitalWrite(
-            gpioH, LOW);  // set to low if not interesed / unused - don't float
-        break;
-      case '0':
-        xDigitalWrite(gpioL, LOW);
-        break;
-      case '1':
-        xDigitalWrite(gpioL, HIGH);
-        break;
-      case 'C':
-        // set the clock pin to logic low initially
-        clkPin = gpioL;
-        xPinMode(gpioL, OUTPUT);
-        xDigitalWrite(gpioL, LOW);
-        break;
-    }
-  }
-
-  // toggle the clock hign then low
+  // toggle the clock high then low
   if (clkPin != -1) {
     Serial.println("\nclocking");
 
     // let clock pin of the IC float to logic high - not sure why we don't just
     // set this as a high output from the arduino? perhaps this is more
     // efficient as there is less current drain?
-    xPinMode(clkPin, INPUT_PULLUP);
+    //xPinMode(clkPin, INPUT_PULLUP);
+    xDigitalWrite(clkPin, HIGH);
     delay(10);
-    xPinMode(clkPin, OUTPUT);
+    //xPinMode(clkPin, OUTPUT);
     xDigitalWrite(clkPin, LOW);
   }
 
-  delay(5);
+  delay(10);
 
-  Serial.print("Response : ");
-
+  
+//  Serial.println("Looping");
   boolean pass = true;
+  boolean forcePrint = false;
+// while(true) {
+  String result = "";
 
   // Reading Outputs from the IC under test
   for (int i = 0; i < pins; i++) {
     Pins pinPair = toGPIOPin(i, pins);
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
-    //
-    //    Serial.print("OUT ");
-    //    Serial.println(gpioL);
-    //    Serial.print("IN ");
-    //    Serial.println(gpioH);
-
+  
     switch (scenario[i]) {
       case 'H':
-        // pull it low; if it still reads as H then its a solid H and not
-        // floating
-        xDigitalWrite(gpioL, LOW);
-        if (!xDigitalRead(gpioH)) {
-          pass = false;
-          Serial.print('L');
-        } else
-          Serial.print('.');
-        break;
-      case 'L':
-        // pull it high; if it still reads as L then its a solid L and not
-        // floating
-        xDigitalWrite(gpioL, HIGH);
-        if (xDigitalRead(gpioH)) {
-          pass = false;
-          Serial.print('H');
-        } else
-          Serial.print('.');
-        break;
-
-      case 'Z':
-
-        // pull it high; a Z should sense as H
-        xDigitalWrite(gpioH, HIGH);
+        // pull it low; if it still reads as H then its a solid H and not floating
+        //xDigitalWrite(gpioL, LOW);
         if (!xDigitalRead(gpioL)) {
           pass = false;
-          Serial.print('l');  // expected H but got L
+          result += 'L';
+        } else
+          result += '.';
+        break;
+      case 'L':
+        // pull it high; if it still reads as L then its a solid L and not floating
+        //xDigitalWrite(gpioL, HIGH);
+        if (xDigitalRead(gpioL)) {
+          pass = false;
+          result += 'H';
+        } else
+          result += '.';
+        break;
+
+      case 'u':
+      case 'Z':
+        //Serial.println("Z test  - read of pin " +String(gpioL) + " write "+String(gpioH));
+        //Serial.println("WRITTEN HIGH");
+        // pull it high; a Z should sense as H
+        xDigitalWrite(gpioH, HIGH);
+        //delay(2000);
+        if (!xDigitalRead(gpioL)) {
+          //Serial.println("err H");
+          pass = false;
+          result += 'l';  // expected H but got L
         } else {
           // pull it low; a Z should sense as L
+          //Serial.println("WRITTEN LOW");
           xDigitalWrite(gpioH, LOW);
+          //delay(2000);
           if (xDigitalRead(gpioL)) {
+            //Serial.println("err L");
             pass = false;
-            Serial.print('h');  // expected L but got H
+            result += 'h';  // expected L but got H
           } else {
-            Serial.print('.');  // OK
+            result += '.';  // OK
+            //Serial.println("ok");
           }
         }
 
         break;
 
+      case '?':
+        forcePrint = true;
+        if (xDigitalRead(gpioL)) result += "1";
+        else result += "0";
+        break;
+
 #ifdef USE_VI_PINS
       case PATCH:
-        Serial.print("-");
+        result += '-';
         break;
 #endif
 
       default:
         // pin is an input or a don't care so display as underscore
-        Serial.print("_");
+        result += '_';
     }
   }
 
-  if (pass)
-    Serial.println(" : good");
-  else
-    Serial.println(" : bad");
-  // Serial.println("\nCase Result : "+String(result));
+// Serial.println(">" + result);
+// delay(1000);
+// }
+
+//  reset();
+
+  if (pass) {
+    Serial.println(" : PASS");
+    if (forcePrint) 
+      Serial.println("Result   : " + result);
+  } else {
+    Serial.println(" : FAIL");
+    Serial.println("Failure  : " + result);
+  }
+
   return pass;
 }

@@ -3,5 +3,6 @@
     "port": "COM6",
     "board": "arduino:avr:nano",
     "configuration": "cpu=atmega328",
-    "sketch": "integrated-circuit-tester.ino"
+    "sketch": "integrated-circuit-tester.ino",
+    "output": "../ArduinoOutput"
 }

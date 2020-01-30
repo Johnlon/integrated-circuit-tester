@@ -166,8 +166,16 @@ Pins toGPIOPin(int icPin, int pinCount) {
   
   if (icPin < leftSideTestPins)
     socketPin = icPin;
-  else 
-    socketPin = icPin + (2 * ((SOCKET_PINS/2)-leftSideTestPins));
-
+  else {
+    int pinsBelowChip = (SOCKET_PINS/2)-leftSideTestPins;
+    socketPin = icPin + (2 * pinsBelowChip);
+  }
+  
   return GPIO_PINS[socketPin];
+}
+
+int unusedSlots(int pinsUsed) {
+  int leftSideTestPins = pinsUsed / 2;
+  int pinsBelowChip = (SOCKET_PINS/2)-leftSideTestPins;
+  return pinsBelowChip;
 }

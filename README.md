@@ -46,8 +46,9 @@ Specify a sequence of test cases using the following pin codes. These codes defi
    - Z=expect high impedance output from chip under test
    - X=dont care - pin gets set with a weak pull down
   
-Also:
-   - /=a spacer for the input pattern that is ignored - use optionally as a left side vs right side separator for example for ease of reading or for whatever else you like
+Also inputs:
+   - /=a spacer you can use in the input pattern as a separator for example for ease of reading groups of pins or for whatever else you like
+   - u=identifies any unused pins and is added automatically by the program to fill in any pins the test says the chip isn't using - this pin will be tested for high impedance - don't use this code yourself as it is effectively same as 'Z'   
 
 For example the test case "111G/HHHV" would mean... test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pins 5,6,7 all expect to be outputs with logic high, and pin 8 is Vcc. 
 
