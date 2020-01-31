@@ -1,6 +1,3 @@
-#ifndef ERROR_FN
-#define ERROR_FN
-
 void error(const String& msg) {
     Serial.print("ERROR: " + String(msg));
 }
@@ -16,4 +13,3 @@ void halt(const String& msg) {
       delay(1000000);
     }
 }
-#endif

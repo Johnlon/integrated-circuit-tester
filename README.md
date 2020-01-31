@@ -45,7 +45,8 @@ Specify a sequence of test cases using the following pin codes. These codes defi
    - H=expect logic high output from chip under test
    - Z=expect high impedance output from chip under test
    - X=dont care - pin gets set with a weak pull down
-  
+   - ?=just read and display the signal at the pin
+
 Also inputs:
    - /=a spacer you can use in the input pattern as a separator for example for ease of reading groups of pins or for whatever else you like
    - u=identifies any unused pins and is added automatically by the program to fill in any pins the test says the chip isn't using - this pin will be tested for high impedance - don't use this code yourself as it is effectively same as 'Z'   
@@ -64,6 +65,8 @@ The test results use these codes:
    - L=a HIGH was expected but LOW was found
    - h=a LOW was expected on the tristate test but HIGH was found
    - l=a HIGH was expected on the tristate test but LOW was found
+   - 1=the test pattern was ? and the value detected was 1
+   - 0=the test pattern was ? and the value detected was 0
 
 Then ...
 -----
@@ -101,6 +104,7 @@ On the Zif socket I measured a voltage of 4.7v-4.8v with a 5v supply. This volta
 
 In anycase it's convenient that I'm seeing reasonable voltages on the Zif vs the needs of the various logic families.
 
+
 EasyEda
 -----
 
@@ -113,6 +117,7 @@ EasyEda
 Arduino Nano
 -----
 
+- There is sufficient capacitance on the GPIO pins and lines out to the Zif socket that writing to a disconected pin (empty Zif) and then reading that same pin returns the logic level that was previously written, rather than a random value. See below for more information.
 - The analog A6/A7 lines cannot be used as digital outputs, just digital inputs only
 - The I2C pins SCL/SDA are open collector and need pull ups - but see more below
 - D13 is connected via a 1k resistor and an LED to ground so this can interfere with it's reliability as a digital input due to the pull down. IF it is to be used at al then it is intended to be used as an output. 
@@ -129,6 +134,51 @@ Firstly, I found this explanation of why some kind of pullup MUST be present ...
 However, the I2C pins on the Ardunio have optional pull-up resistors. Conveniently, the Wire library turns on the internal pull up resistors in it's twi_init() called by Wire.begin() function on SDA & SCL. Doing this puts a weak-pull up on the I2C pins even though they are acting as outputs. Further digging explains that it is possible to have these digital input pull-ups turned on despite the pins acting as I2C outputs because the digital IO circuitry that contains the pull-up is in parallel to the I2C IO circuitry so they are not exclusive. Convenient!
 
 And, for a physically short bus and where the voltages on each end are the same then a design doesn't need additional external pullups on the I2C pins.
+
+**Stray Capacitance test result**
+
+I tested what would happen if I left the Zif socket empty then set the GPIO as output and wrote a 1's to all the pins. I then turned the pins into inputs and measured the logic level every few seconds to to see what unfolded.  
+
+I've included the test results for my soldered PCB below.
+
+```
+Testcase :  1111111111111111111111
+Result   : -1111111111111111111111- : 0 secs
+Result   : -1111111111111111111111- : 1 sec
+Result   : -1101111111111111111111- : 2 secs
+Result   : -0001111111111111111000- : 6 secs
+Result   : -0000000000000110000000- : 10 secs
+Result   : -0000000000000010000000- : 15 secs
+Result   : -0000000000000010000000- : 20 secs
+Result   : -0000000000000000000000- : 25 secs
+```
+
+Further run ...
+```
+Testcase :  1111111111111111111111
+Result   : -1111111111111111111111- : 0 secs
+Result   : -1111111111111111111111- : 1 sec
+Result   : -1001111111111111111111- : 2 secs
+Result   : -0001111111011111111000- : 6 secs
+Result   : -0000000100000111000000- : 10 secs
+Result   : -0000000000000010000000- : 15 secs
+Result   : -0000000000000010000000- : 20 secs
+Result   : -0000000000000010000000- : 25 secs
+```
+
+What I see is that reading the pins echo's back the logic levels that were written to them moments before. We can see that at time passes the memory decays and the pins gradually start reporting logic 0. This decay consistently takes  around 25 seconds to complete.
+
+Running this same test over and over I found that the same pattern of decay to 0 was consistent on each run. I guess this is a consequence of each path having it's own unique RC.
+
+However, I don't see how the numbers add up. I assume this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the  100MOhm inputs. But, if the traces on the PCB are only a few pF (*1) and the input is 100MOhm this still doesn't produce a significant RC value. 
+
+So I'm a bit confused why the effect persists so long. 
+
+This effect really confused me for ages and for quite a while I thought I had a hardware bug or had damaged one of the devices. 
+
+Any explanations of what's going on would be appreciated.
+
+(*1 "Zif sockets can add 8pF" see ["EMC at Component and PCB Level" 5.1.5 Component Sockets](https://books.google.co.uk/books?id=__zOzV7Kd-MC&pg=PA106&lpg=PA106&dq=%22zif%22+socket+%22capacitance%22&source=bl&ots=un8Jfz-B4g&sig=ACfU3U26ntpdDMNau6HHNYnmF4ISwuBBbg&hl=en&sa=X&ved=2ahUKEwjzpvT636znAhXUi1wKHYkKDSkQ6AEwBHoECDAQAQ#v=onepage&q=%22zif%22%20socket%20%22capacitance%22&f=false))
 
 Principal of operation 
 ====

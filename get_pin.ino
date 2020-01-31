@@ -1,4 +1,6 @@
-#include "error.h"
+
+#define EXTENDER1_OFFSET 100
+#define EXTENDER2_OFFSET 200
 
 #define GPA0  0
 #define GPA1  1
@@ -17,35 +19,8 @@
 #define GPB6  14
 #define GPB7  15
 
-#define MCP1(X) 100+X
-#define MCP2(X) 200+X
-
-
-/* pin out depends on your test circuit and how you've wired it together.
-  this scheme defines a mapping between the pins of the chip under test and a pair of GPIO pins of the arduino.
-  Gconfigures the pair of GPIO pins that will interact with pin 1 of the IC under test.
-
-  toGPIOPin() returns the GPIO pin that maps to the given IC pin.
-
-  MCP23017 max io current is 25ma so the gpioL resistance could be as low as 200 ohm assuming the high / low output differential is 5v.
-  MCP23017 datasheet says High out is Vdd-0.7 (ie 4.3)
-  MCP23017 datasheet says Low out is 0.6v
-  So the diff is 3.7v.
-  So the most we can supply to Vcc of the test chip is 3.7v  
-  What low value resistor to use? 3.7v/25ma = 148ohm
-
-
-  Device Class Vcc levels
-  =======================
-  
-  HC logic chips data sheets say VCC may be as low as 2v typially
-  HCT data sheets quote 4.5 as lowest Vcc but this is the min in order to maintail TTL compatibility. In reality HCT will run fine at lower Vcc.
-
-  http://www.ti.com/lit/an/sdya009c/sdya009c.pdf - Texas Instruments - Designing With Logic
-  2.2 Behavior With Low Supply Voltages
-  "TTL devices attain stability with a supply voltage of about 3.5 V, and are fully functional at a typical voltage of 4 V"
-
-  */
+#define MCP1(X) (EXTENDER1_OFFSET+X)
+#define MCP2(X) (EXTENDER2_OFFSET+X)
 
 struct Pins {
   int gpioL; // low resistance - used as gpio output to drive VCC/GNC and also logic inputs on the test IC, alternatively used a gpio input during probing for Z outputs
@@ -151,8 +126,10 @@ int NUM_PINS = (sizeof(GPIO_PINS) / sizeof(Pins));
 
 #define SOCKET_PINS 24 // bottom 4 pins of 28 holes are not connected
 
-// map from IC pin to arduino PINS
-Pins toGPIOPin(int icPin, int pinCount) {
+// map from test ic pin to GPIO PINS
+// icPin is the pin number on chip being tested
+// pinCount is the number of pins on the chip being tested 
+struct Pins toGPIOPin(int icPin, int pinCount) {
   if (NUM_PINS != SOCKET_PINS) {
     halt("\nsocket has " + String(SOCKET_PINS) + " pins but cfg has "+ String(NUM_PINS));
   }
@@ -161,6 +138,7 @@ Pins toGPIOPin(int icPin, int pinCount) {
     halt("\nNo test pin configured for IC pin "  + String(icPin));
   }
 
+  // find out which Zif socket pin this is
   int leftSideTestPins = pinCount / 2;
   int socketPin = icPin;
   
@@ -171,11 +149,13 @@ Pins toGPIOPin(int icPin, int pinCount) {
     socketPin = icPin + (2 * pinsBelowChip);
   }
   
+  // lookup GPIO pins feeding that zif socket pin
   return GPIO_PINS[socketPin];
 }
 
-int unusedSlots(int pinsUsed) {
-  int leftSideTestPins = pinsUsed / 2;
+// given a chip with N pins then how man rows of Zif socket pins are empty
+int unusedSlots(int chipPins) {
+  int leftSideTestPins = chipPins / 2;
   int pinsBelowChip = (SOCKET_PINS/2)-leftSideTestPins;
   return pinsBelowChip;
 }

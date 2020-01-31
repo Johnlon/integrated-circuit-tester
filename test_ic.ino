@@ -1,6 +1,4 @@
-
 #include <Adafruit_MCP23017.h>
-#include "get_pin.h"
 
 #ifdef USE_VI_PINS
 #define PATCH '-'
@@ -10,8 +8,8 @@ Adafruit_MCP23017 mcp1;
 Adafruit_MCP23017 mcp2;
 
 void mcp_setup() {
-  mcp1.begin(0);  //  address 0
-  mcp2.begin(1);  // address 1
+  mcp1.begin(0);  //  address 0 = extender 1
+  mcp2.begin(1);  // address 1 = extender 2
 }
 
 /* read from serial io */
@@ -42,19 +40,23 @@ void reset() {
 }
 
 void xPinMode(uint8_t p, uint8_t d) {
-  // Serial.println("setting "+ String(p) + " as mode "+ String(d));
+  int pin=-1;
+  String device = "";
+  if (p < EXTENDER1_OFFSET) {
+    pin = p;
+    device = "arduino";
+    pinMode(pin, d);
+  } else if (p < EXTENDER2_OFFSET) {
+    pin = p - EXTENDER1_OFFSET;
+    device = "extender1";
+    mcp1.pinMode(pin, d);
+  } else {
+    pin = p - EXTENDER2_OFFSET;
+    device = "extender2";
+    mcp2.pinMode(pin, d);
+  } 
 
-  if (p < 100) {
-    // Serial.println("setting arduino "+ String(p) + " as mode "+ String(d));
-    pinMode(p, d);
-  } else if (p < 200) {
-    // Serial.println("setting mcp1 "+ String(p-100) + " as mode "+ String(d));
-    mcp1.pinMode(p - 100, d);
-  } else if (p < 300) {
-    // Serial.println("setting mcp2 "+ String(p-200) + " as mode "+ String(d));
-    mcp2.pinMode(p - 200, d);
-  } else
-    halt("Error: pin number out of range: " + String(p));
+  //Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) + ")");
 }
 void xDigitalWrite(uint8_t p, uint8_t d) {
   // Serial.println("writing " + String(d) + " to " + String(p));
@@ -114,40 +116,10 @@ String fillUnusedPins(const String& test) {
    "scenario" is a string containing a sequence of character codes, one for each
    pin of the test IC.
 
-   The codes define the inputs and the expected outputs from the test subject.
-   V=VCC of chip under test (set gpioL to high; set gpioH to high)
-   G=GND of chip under test (set gpioL to low ; set gpioH to low)
-   1=set input pin of chip under test to logic high
-   0=set input pin of chip under test to logic low
-   L=expect logic low output from chip under test
-   H=expect logic high output from chip under test
-   Z=expect high impedance output from chip under test
-   X=dont care - gets set with a weak pull down to avoid floating in case it's an input
-   ?=just read and display the signal at the pin
-
-   Also ...
-   /=ignored - use optionally as a left side right side separator for ease of reading or whatever else
-   u=unused pin added automatically to fill in any pins the test says the chip isn't using - will be tested for high impedance   
-
-   On output:
-   .=pass for that pin
-   -=one of the top two pins - theres a hardware fault on those so dont put the
-   chip there
-   _=the pin isn't an output so there's not test result
-   H=a LOW was expected but HIGH was found
-   L=a HIGH was expected but LOW was found
-   h=a LOW was expected on the tristate test but HIGH was found
-   l=a HIGH was expected on the tristate test but LOW was found
-   1=the pattern was ? and the value detected is 1
-   0=the pattern was ? and the value detected is 0
+  See the README for a full list of input and result codes.
 
    returns true if test passes, false otherwise
 */
-boolean test_ic(const String& scenario) {
-  test_ic(scenario, "");
-}
-
-
 boolean test_ic(String scenario, String name) {
   //reset();
 
@@ -160,7 +132,7 @@ boolean test_ic(String scenario, String name) {
 
   scenario = fillUnusedPins(scenario);
 
-  Serial.print("Testcase : " + scenario + "   " + name);
+//  Serial.print("Testcase : " + scenario + "  : " + name);
 
   int clkPin = -1;
   int pins = scenario.length();
@@ -189,6 +161,7 @@ boolean test_ic(String scenario, String name) {
         xDigitalWrite(gpioL, HIGH);
         xPinMode(gpioH, INPUT);
         break;
+
       case 'G':
         xPinMode(gpioL, OUTPUT);
         xDigitalWrite(gpioL, LOW);
@@ -211,7 +184,7 @@ boolean test_ic(String scenario, String name) {
       case 'C':
         clkPin = gpioL;
         xPinMode(gpioL, OUTPUT);
-        xDigitalWrite(gpioL, LOW); // low intially
+        xDigitalWrite(gpioL, LOW); // low intially, will be toggled later
         xPinMode(gpioH, INPUT);  
         break;
     
@@ -233,8 +206,8 @@ boolean test_ic(String scenario, String name) {
         xDigitalWrite(gpioH, LOW);
         break;
 
-      // FOR Z OUTPUT - there will be two tests one with gpioL as H and another
-      // as L to see if this
+      // FOR Z OUTPUT - there will be two tests, 
+      // one with gpioL as H and another as L to see if this
       case 'u':
       case 'Z':
         xPinMode(gpioL, INPUT);   
@@ -271,6 +244,7 @@ boolean test_ic(String scenario, String name) {
   
 //  Serial.println("Looping");
   boolean pass = true;
+  boolean wasTest = false;
   boolean forcePrint = false;
 // while(true) {
   String result = "";
@@ -283,6 +257,7 @@ boolean test_ic(String scenario, String name) {
   
     switch (scenario[i]) {
       case 'H':
+        wasTest = true;
         // pull it low; if it still reads as H then its a solid H and not floating
         //xDigitalWrite(gpioL, LOW);
         if (!xDigitalRead(gpioL)) {
@@ -292,6 +267,7 @@ boolean test_ic(String scenario, String name) {
           result += '.';
         break;
       case 'L':
+        wasTest = true;
         // pull it high; if it still reads as L then its a solid L and not floating
         //xDigitalWrite(gpioL, HIGH);
         if (xDigitalRead(gpioL)) {
@@ -303,6 +279,7 @@ boolean test_ic(String scenario, String name) {
 
       case 'u':
       case 'Z':
+        wasTest = true;
         //Serial.println("Z test  - read of pin " +String(gpioL) + " write "+String(gpioH));
         //Serial.println("WRITTEN HIGH");
         // pull it high; a Z should sense as H
@@ -354,9 +331,10 @@ boolean test_ic(String scenario, String name) {
 //  reset();
 
   if (pass) {
-    Serial.println(" : PASS");
+    if (wasTest)
+      Serial.println(" : PASS");
     if (forcePrint) 
-      Serial.println("Result   : " + result);
+      Serial.println("Result   : " + result + " : " + name);
   } else {
     Serial.println(" : FAIL");
     Serial.println("Failure  : " + result);
@@ -364,3 +342,9 @@ boolean test_ic(String scenario, String name) {
 
   return pass;
 }
+
+boolean test_ic(const String& scenario) {
+  test_ic(scenario, "");
+}
+
+
