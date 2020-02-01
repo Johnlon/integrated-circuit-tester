@@ -12,102 +12,6 @@ void mcp_setup() {
   mcp2.begin(1);  // address 1 = extender 2
 }
 
-/* read from serial io */
-int kbRead() {
-  // send data only when you receive data:
-  while (Serial.available() == 0) {
-  }
-
-  return Serial.read();
-}
-
-void reset() {
-  Serial.println("\nresetting");
-
-  for (int i = 0; i < NUM_PINS; i++) {
-    Pins pinPair = toGPIOPin(i, NUM_PINS);
-    int gpioL = pinPair.gpioL;
-    int gpioH = pinPair.gpioH;
-
-    // discharge/force to a definitive value - ie low
-    xPinMode(gpioH, OUTPUT);
-    xDigitalWrite(gpioH, LOW);
-        
-    // disconnect
-    xPinMode(gpioL, INPUT);
-    xPinMode(gpioH, INPUT);
-  }
-}
-
-void xPinMode(uint8_t p, uint8_t d) {
-  int pin=-1;
-  String device = "";
-  if (p < EXTENDER1_OFFSET) {
-    pin = p;
-    device = "arduino";
-    pinMode(pin, d);
-  } else if (p < EXTENDER2_OFFSET) {
-    pin = p - EXTENDER1_OFFSET;
-    device = "extender1";
-    mcp1.pinMode(pin, d);
-  } else {
-    pin = p - EXTENDER2_OFFSET;
-    device = "extender2";
-    mcp2.pinMode(pin, d);
-  } 
-
-  //Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) + ")");
-}
-void xDigitalWrite(uint8_t p, uint8_t d) {
-  // Serial.println("writing " + String(d) + " to " + String(p));
-
-  if (p < 100)
-    digitalWrite(p, d);
-  else if (p < 200)
-    mcp1.digitalWrite(p - 100, d);
-  else if (p < 300)
-    mcp2.digitalWrite(p - 200, d);
-  else
-    halt("Error pin number of of range: " + String(p));
-}
-uint8_t xDigitalRead(uint8_t p) {
-  if (p < 100) {
-    return digitalRead(p);
-  } else if (p < 200)
-    return mcp1.digitalRead(p - 100);
-  else if (p < 300)
-    return mcp2.digitalRead(p - 200);
-  else
-    halt("Error pin number of of range: " + String(p));
-}
-
-// hardware design error - A6/A7 dont work as outputs so shift the scenario down
-// one set of pins. do not use the top row in the zip socket
-String patchScenario(String sin) {
-  return PATCH + sin + PATCH;
-}
-
-String fillUnusedPins(const String& test) {
-  int unused = 2*unusedSlots(test.length());
-
-  String fill = "";
-  
-  while (unused -- > 0) { 
-    fill += "u";
-  }
-
-  String left = test.substring(0, test.length()/2);
-  String right = test.substring((test.length()/2), test.length());
-  
-  // Serial.println("IN    "+ test);
-  // Serial.println("LEFT  "+ left);
-  // Serial.println("RIGHT "+ right);
-  // Serial.println("FILL  "+ fill);
-
-  return left + fill + right;
-}
-
-
 /*
    param "scenario" is the test case input and output state definition.
    even a trivial ic will require a sequence of these cases to tests it
@@ -132,7 +36,7 @@ boolean test_ic(String scenario, String name) {
 
   scenario = fillUnusedPins(scenario);
 
-//  Serial.print("Testcase : " + scenario + "  : " + name);
+  String testcase = scenario + "  : " + name;
 
   int clkPin = -1;
   int pins = scenario.length();
@@ -331,14 +235,12 @@ boolean test_ic(String scenario, String name) {
 //  reset();
 
   if (pass) {
-    if (wasTest)
-      Serial.println(" : PASS");
-    if (forcePrint) 
-      Serial.println("Result   : " + result + " : " + name);
+    Serial.println("PASS  : "+ testcase);
   } else {
-    Serial.println(" : FAIL");
-    Serial.println("Failure  : " + result);
+    Serial.println("FAIL  : " + testcase);
   }
+
+  Serial.println("Result: " + result + "  : " + name);
 
   return pass;
 }
@@ -347,4 +249,100 @@ boolean test_ic(const String& scenario) {
   test_ic(scenario, "");
 }
 
+
+
+/* read from serial io */
+int kbRead() {
+  // send data only when you receive data:
+  while (Serial.available() == 0) {
+  }
+
+  return Serial.read();
+}
+
+void reset() {
+  //Serial.println("\nresetting");
+
+  for (int i = 0; i < NUM_PINS; i++) {
+    Pins pinPair = toGPIOPin(i, NUM_PINS);
+    int gpioL = pinPair.gpioL;
+    int gpioH = pinPair.gpioH;
+
+    // discharge/force to a definitive value - ie low
+    xPinMode(gpioH, OUTPUT);
+    xDigitalWrite(gpioH, LOW);
+        
+    // disconnect
+    xPinMode(gpioL, INPUT);
+    xPinMode(gpioH, INPUT);
+  }
+}
+
+void xPinMode(uint8_t p, uint8_t d) {
+  int pin=-1;
+  String device = "";
+  if (p < EXTENDER1_OFFSET) {
+    pin = p;
+    device = "arduino";
+    pinMode(pin, d);
+  } else if (p < EXTENDER2_OFFSET) {
+    pin = p - EXTENDER1_OFFSET;
+    device = "extender1";
+    mcp1.pinMode(pin, d);
+  } else {
+    pin = p - EXTENDER2_OFFSET;
+    device = "extender2";
+    mcp2.pinMode(pin, d);
+  } 
+
+  //Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) + ")");
+}
+void xDigitalWrite(uint8_t p, uint8_t d) {
+  // Serial.println("writing " + String(d) + " to " + String(p));
+
+  if (p < 100)
+    digitalWrite(p, d);
+  else if (p < 200)
+    mcp1.digitalWrite(p - 100, d);
+  else if (p < 300)
+    mcp2.digitalWrite(p - 200, d);
+  else
+    halt("Error pin number of of range: " + String(p));
+}
+uint8_t xDigitalRead(uint8_t p) {
+  if (p < 100) {
+    return digitalRead(p);
+  } else if (p < 200)
+    return mcp1.digitalRead(p - 100);
+  else if (p < 300)
+    return mcp2.digitalRead(p - 200);
+  else
+    halt("Error pin number of of range: " + String(p));
+}
+
+// hardware design error - A6/A7 dont work as outputs so shift the scenario down
+// one set of pins. do not use the top row in the zip socket
+String patchScenario(String sin) {
+  return PATCH + sin + PATCH;
+}
+
+String fillUnusedPins(const String& test) {
+  int unused = 2*unusedSlots(test.length());
+
+  String fill = "";
+  
+  while (unused -- > 0) { 
+    fill += "u";
+  }
+
+  String left = test.substring(0, test.length()/2);
+  String right = test.substring((test.length()/2), test.length());
+  
+  // Serial.println("IN    "+ test);
+  // Serial.println("LEFT  "+ left);
+  // Serial.println("RIGHT "+ right);
+  // Serial.println("FILL  "+ fill);
+
+  return left + fill + right;
+}
 

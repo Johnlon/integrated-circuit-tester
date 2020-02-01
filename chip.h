@@ -35,3 +35,7 @@ struct Chip {
     return *this;
   }
 };
+
+Chip chip(const char* name, const char* desc) {
+  return Chip(name,desc);
+}

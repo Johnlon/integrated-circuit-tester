@@ -1,86 +1,55 @@
 #include "chip.h"
 
-void setup() {
-  Serial.begin(9600);
-  mcp_setup();
-  
   // 74245 pin 1 dir 0=a2b, 1=b2a
   // left side is port A
   // pin 19 of 20 is /OE
-  Chip c74245("74245", "Transceiver 8 bit");
-  c74245.scenario("XZZZZZZZZG/ZZZZZZZZ1V", "OE disabled")
-      .scenario("100000000G/LLLLLLLL0V", "A to B all low")
-      .scenario("111111111G/HHHHHHHH0V", "A to B all high")
-      .scenario("0LLLLLLLLG/000000000V", "B to A all low")
-      .scenario("0HHHHHHHHG/111111110V", "B to A all high");
+Chip cEmpty = chip("EMPTY", "Empty ZIF")
+                  .scenario("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty");
 
-  Chip c74242("74242", "Transceiver Inverting 4 bit");
-  c74242.scenario("1ZZZZZG/ZZZZZ0V", "OEA and OEB both disabled")
-      .scenario("0ZZZZZG/ZZZZZ1V", "OEA and OEB both enabled")
-      .scenario("0Z0000G/HHHHZ1V", "A to B all low")
-      .scenario("0Z1111G/LLLLZ1V", "A to B all high")
-      .scenario("1ZHHHHG/0000Z1V", "B to A all low")
-      .scenario("1ZLLLLG/1111Z1V", "B to A all high");
+Chip c74245 = chip("74245", "Transceiver 8 bit")
+                  .scenario("XZZZZZZZZG/ZZZZZZZZ1V", "OE disabled")
+                  .scenario("100000000G/LLLLLLLL0V", "A to B all low")
+                  .scenario("111111111G/HHHHHHHH0V", "A to B all high")
+                  .scenario("0LLLLLLLLG/000000000V", "B to A all low")
+                  .scenario("0HHHHHHHHG/111111110V", "B to A all high");
 
-  // only include the chips you want to include in the scan - reduces the
-  // program storage space needed
-  const Chip* chips[] = {&c74245, &c74242, NULL};
+Chip c74242 = chip("74242", "Transceiver Inverting 4 bit")
+                  .scenario("1ZZZZZG/ZZZZZ0V", "OEA and OEB both disabled")
+                  .scenario("0ZZZZZG/ZZZZZ1V", "OEA and OEB both enabled")
+                  .scenario("0Z0000G/HHHHZ1V", "A to B all low")
+                  .scenario("0Z1111G/LLLLZ1V", "A to B all high")
+                  .scenario("1ZHHHHG/0000Z1V", "B to A all low")
+                  .scenario("1ZLLLLG/1111Z1V", "B to A all high");
 
-  Serial.println("Testing ...");
 
-  // 11 pin each side socket empty self test - 11 because orig hw has bug on top
-  // row
-  // test_ic("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty socket self test");
+// Chip cLedArray8 = chip("LED Array 8 ", "8 bar led array")
+//                   .scenario("00000000/ZZZZZZZZ", "No power")
+//                   .scenario("11111111/HHHHHHHH", "All powered")
+//                   ;
 
-//   // test_ic("XZZZZZZZZG/ZZZZZZZZ1V");  // 74245 - OE disabled
-//     reset();
-//     test_ic("100000000G/LLLLLLLL0V");  // 74245 - A to B all low
-//     test_ic("100000000G/LLLLLLLL0V");  // 74245 - A to B all low
-//     reset();
-//  //   test_ic("111111111G/HHHHHHHH0V");  // 74245 - A to B all high
-//     test_ic("100000000G/HHHHHHHH0V");  // 74245 - A to B all high
-//     reset();
-//  //   test_ic("111111111G/HHHHHHHH0V");  // 74245 - A to B all high
-//     test_ic("100100000G/HHHHHHHH0V");  // 74245 - A to B all high
-//     reset();
-//     test_ic("??????????/??????????");  // 74245 - A to B all high
-//   //  test_ic("0LLLLLLLLG/000000000V");  // 74245 - B to A all low
-//   //  test_ic("0HHHHHHHHG/111111110V");  // 74245 - B to A all high
+// only include the chips you want to include in the scan - reduces the
+// program storage space needed
+Chip chips[] = {c74245, c74242, cEmpty};
 
-//  identify(chips);
+void setup() {
+  Serial.begin(9600);
+  mcp_setup();
 
-  Serial.println("Testcase :  1111111111111111111111");
-  test_ic("1111111111111111111111");  // capacitance test
-  test_ic("??????????????????????", "0 secs");  // capacitance test
-  delay(1000);
-  test_ic("??????????????????????", "1 sec");  // capacitance test
-  delay(1000);
-  test_ic("??????????????????????", "2 secs");  // capacitance test
-  delay(4000);
-  test_ic("??????????????????????", "6 secs");  // capacitance test
-  delay(4000);
-  test_ic("??????????????????????", "10 secs");  // capacitance test
-  delay(5000);
-  test_ic("??????????????????????", "15 secs");  // capacitance test
-  delay(5000);
-  test_ic("??????????????????????", "20 secs");  // capacitance test
-  delay(5000);
-  test_ic("??????????????????????", "25 secs");  // capacitance test
+  //emptySocket();
+  identify();
+  //barLedTestPattern();
 
   reset();
   delay(1000000);
 }
 
-void identify(const Chip* chips[]) {
+void identify() {
   // Work in progress - chip detection - test all scenarios
   Serial.println("\n=======================");
   Serial.println("IDENTIFYING ... ");
 
-  int idx = 0;
-  while (chips[idx] != NULL) {
+  for (const Chip& chip : chips) {
     reset();
-
-    const Chip& chip = *chips[idx++];
 
     Serial.println("\nTesting: " + String(chip.name) + " : " +
                    String(chip.description));
@@ -104,4 +73,56 @@ void identify(const Chip* chips[]) {
 
   reset();
 }
+
+void emptySocket() {
+  // 11 pin each side socket empty self test - 11 because orig hw has bug on top
+  test_ic("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty socket self test");
+}
+void decay() {
+  Serial.println("Testcase :  1111111111111111111111");
+  test_ic("1111111111111111111111");            // capacitance test
+  test_ic("??????????????????????", "0 secs");  // capacitance test
+  delay(1000);
+  test_ic("??????????????????????", "1 sec");  // capacitance test
+  delay(1000);
+  test_ic("??????????????????????", "2 secs");  // capacitance test
+  delay(4000);
+  test_ic("??????????????????????", "6 secs");  // capacitance test
+  delay(4000);
+  test_ic("??????????????????????", "10 secs");  // capacitance test
+  delay(5000);
+  test_ic("??????????????????????", "15 secs");  // capacitance test
+  delay(5000);
+  test_ic("??????????????????????", "20 secs");  // capacitance test
+  delay(5000);
+  test_ic("??????????????????????", "25 secs");  // capacitance test
+}
+
+void barLedTestPattern() {
+  int i = 10;
+  while (i-- > 0) {
+    
+    int i = 5;
+    int d1 = 200;
+    while (i-- > 0) {
+      test_ic("11111111111/00000000000", "on");
+      delay(d1);
+      test_ic("00000000000/00000000000", "of");
+      delay(d1);
+    }
+    
+    int j = 16;
+    int d2 = 20;
+    while (j-->0) {
+      test_ic("10001000100/00000000000", "walk");
+      delay(d2);
+      test_ic("01000100010/00000000000", "walk");
+      delay(d2);
+      test_ic("00100010001/00000000000", "walk");
+      delay(d2);
+      test_ic("00010001000/00000000000", "walk");
+      delay(d2);
+    }
+  }
+  }
 void loop() {}
