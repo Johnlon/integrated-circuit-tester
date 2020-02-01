@@ -168,7 +168,7 @@ Result   : -0000000000000010000000- : 25 secs
 
 What I see is that reading the pins echo's back the logic levels that were written to them moments before. We can see that at time passes the memory decays and the pins gradually start reporting logic 0. This decay consistently takes  around 25 seconds to complete.
 
-Running this same test over and over I found that the same pattern of decay to 0 was consistent on each run. I guess this is a consequence of each path having it's own unique RC.
+Running this same test over and over I found that the  pattern of decay to 0 was somewhat similar on each test run. I guess this is a consequence of each path having it's own unique RC.
 
 However, I don't see how the numbers add up. I assume this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the  100MOhm inputs. But, if the traces on the PCB are only a few pF (*1) and the input is 100MOhm this still doesn't produce a significant RC value. 
 
