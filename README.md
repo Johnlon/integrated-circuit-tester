@@ -170,18 +170,16 @@ What I see is that reading the pins echo's back the logic levels that were writt
 
 Running this same test over and over I found that the  pattern of decay to 0 was somewhat similar on each test run. I guess this is a consequence of each path having it's own unique RC.
 
-However, I don't see how the numbers add up. I assume this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the  100MOhm inputs. But, if the traces on the PCB are only a few pF (*1) and the input is 100MOhm this still doesn't produce a significant RC value. 
+Initial, I couldn't see how the numbers add up to be an RC effect. I assumed this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the 100MOhm inputs. But, if the combined capacitance of the pin (*1), plus traces on the PCB, plus the Zif socket is aroung 20pF and the input is 100MOhm this still doesn't produce a significant RC value; it's a tiny 0.002 seconds. 
 
-So I'm a bit confused why the effect persists so long. 
+I posted this conundrum onto [this project's Hackaday.IO log](https://hackaday.io/project/169707-integrated-circuit-tester-tristate-too) and Ken Yap commented that CMOS inputs can be up to 10^12 Ohms and when I put that number into the equation then I ended up with an RC value of 20 seconds.
 
-This effect really confused me for ages and for quite a while I thought I had a hardware bug or had damaged one of the devices. 
-
-Any explanations of what's going on would be appreciated.
+This "memory" effect really confused me for ages and for quite a while I thought I had a hardware bug or had damaged one of the devices. 
 
 (*1 "Zif sockets can add 8pF" see ["EMC at Component and PCB Level" 5.1.5 Component Sockets](https://books.google.co.uk/books?id=__zOzV7Kd-MC&pg=PA106&lpg=PA106&dq=%22zif%22+socket+%22capacitance%22&source=bl&ots=un8Jfz-B4g&sig=ACfU3U26ntpdDMNau6HHNYnmF4ISwuBBbg&hl=en&sa=X&ved=2ahUKEwjzpvT636znAhXUi1wKHYkKDSkQ6AEwBHoECDAQAQ#v=onepage&q=%22zif%22%20socket%20%22capacitance%22&f=false))
 
 Principal of operation 
-====
+=====
 
 This circuit is designed to be able to power a low power logic device and also to determine if the device is healthy. It does this by applying a sequence of known inputs and verifying the expected outputs.
 
