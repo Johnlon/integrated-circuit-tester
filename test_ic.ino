@@ -4,6 +4,12 @@
 #define PATCH '-'
 #endif
 
+struct PinResult {
+  boolean isOk;
+  char result;
+};
+
+
 Adafruit_MCP23017 mcp1;
 Adafruit_MCP23017 mcp2;
 
@@ -25,7 +31,7 @@ void mcp_setup() {
    returns true if test passes, false otherwise
 */
 boolean test_ic(String scenario, String name) {
-  //reset();
+  // reset();
 
   scenario.replace("/", "");
 
@@ -52,12 +58,12 @@ boolean test_ic(String scenario, String name) {
     int gpioH = pinPair.gpioH;
 
     switch (scenario[i]) {
-      case PATCH:   
-      case 'X':  
+      case PATCH:
+      case 'X':
         // dont care - set to weak pull up so as not to leave floating
-        xPinMode(gpioL, INPUT_PULLUP);
-        xPinMode(gpioH, INPUT);
-        //xDigitalWrite(gpioH, LOW);
+        xPinMode(gpioL, INPUT);
+        xPinMode(gpioH, OUTPUT);
+        xDigitalWrite(gpioH, LOW);
         break;
 
       case 'V':
@@ -74,56 +80,65 @@ boolean test_ic(String scenario, String name) {
 
       // INPUTS TO IC
       case '1':
-        xPinMode(gpioL, OUTPUT);  
+        xPinMode(gpioL, OUTPUT);
         xDigitalWrite(gpioL, HIGH);
-        xPinMode(gpioH, INPUT);  
+        xPinMode(gpioH, INPUT);
         break;
       case '0':
-        xPinMode(gpioL, OUTPUT); 
+        xPinMode(gpioL, OUTPUT);
         xDigitalWrite(gpioL, LOW);
-        xPinMode(gpioH, INPUT); 
+        xPinMode(gpioH, INPUT);
         break;
-      
+
       // FOR CLK INPUT
       case 'C':
         clkPin = gpioL;
         xPinMode(gpioL, OUTPUT);
-        xDigitalWrite(gpioL, LOW); // low intially, will be toggled later
-        xPinMode(gpioH, INPUT);  
+        xDigitalWrite(gpioL, LOW);  // low intially, will be toggled later
+        xPinMode(gpioH, INPUT);
         break;
-    
+
       // EXPECTATIONS OF THE OUTPUTS OF THE IC
       case 'L':
-        // TODO Do a Z-like test and expect it to always return L - ie pull is ineffective
-        // or is it enought to gently pull it the opposite direction? << temp solution 
+        // TODO Do a Z-like test and expect it to always return L - ie pull is
+        // ineffective or is it enought to gently pull it the opposite
+        // direction? << temp solution
         //  ztest is better and we could show a Z in the output
-        xPinMode(gpioL, INPUT); 
-        xPinMode(gpioH, OUTPUT);  
+        xPinMode(gpioL, INPUT);
+
+        // weakly pull in the opposite direction to expected.
+        // if its still the expected value the it is a solid pass and not and
+        // not a random floating value
+        xPinMode(gpioH, OUTPUT);
         xDigitalWrite(gpioH, HIGH);
         break;
       case 'H':
-        // TODO: Do a Z-like test and expect it to always return L - ie pull is ineffective
-        // or is it enought to gently pull it the opposite direction? << temp solution 
+        // TODO: Do a Z-like test and expect it to always return L - ie pull is
+        // ineffective or is it enought to gently pull it the opposite
+        // direction? << temp solution
         //- ztest is better and we could show a Z in the output
-        xPinMode(gpioL, INPUT);  
-        xPinMode(gpioH, OUTPUT);  
+        xPinMode(gpioL, INPUT);
+
+        // weakly pull in the opposite direction to expected.
+        // if its still the expected value the it is a solid pass and not and
+        // not a random floating value
+        xPinMode(gpioH, OUTPUT);
         xDigitalWrite(gpioH, LOW);
         break;
 
-      // FOR Z OUTPUT - there will be two tests, 
+      // FOR Z OUTPUT - there will be two tests,
       // one with gpioL as H and another as L to see if this
       case 'u':
       case 'Z':
-        xPinMode(gpioL, INPUT);   
-        xPinMode(gpioH, OUTPUT);  
+        xPinMode(gpioL, INPUT);
+        xPinMode(gpioH, OUTPUT);
         break;
 
       case '?':
         // TODO: test for Z and we could show a Z in the output
-        xPinMode(gpioL, INPUT);  
-        xPinMode(gpioH, INPUT);  
+        xPinMode(gpioL, INPUT);
+        xPinMode(gpioH, INPUT);
         break;
-
     }
   }
 
@@ -133,24 +148,16 @@ boolean test_ic(String scenario, String name) {
   if (clkPin != -1) {
     Serial.println("\nclocking");
 
-    // let clock pin of the IC float to logic high - not sure why we don't just
-    // set this as a high output from the arduino? perhaps this is more
-    // efficient as there is less current drain?
-    //xPinMode(clkPin, INPUT_PULLUP);
     xDigitalWrite(clkPin, HIGH);
-    delay(10);
-    //xPinMode(clkPin, OUTPUT);
     xDigitalWrite(clkPin, LOW);
   }
 
-  delay(10);
+  delay(5);
 
-  
-//  Serial.println("Looping");
+  //  Serial.println("Looping");
   boolean pass = true;
   boolean wasTest = false;
   boolean forcePrint = false;
-// while(true) {
   String result = "";
 
   // Reading Outputs from the IC under test
@@ -158,62 +165,35 @@ boolean test_ic(String scenario, String name) {
     Pins pinPair = toGPIOPin(i, pins);
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
-  
+
     switch (scenario[i]) {
-      case 'H':
+      case 'H': {
         wasTest = true;
-        // pull it low; if it still reads as H then its a solid H and not floating
-        //xDigitalWrite(gpioL, LOW);
-        if (!xDigitalRead(gpioL)) {
-          pass = false;
-          result += 'L';
-        } else
-          result += '.';
+        PinResult r = expectH(gpioH, gpioL);
+        if (!r.isOk) pass = false;
+        result += r.result;
         break;
-      case 'L':
+      }
+      case 'L': {
         wasTest = true;
-        // pull it high; if it still reads as L then its a solid L and not floating
-        //xDigitalWrite(gpioL, HIGH);
-        if (xDigitalRead(gpioL)) {
-          pass = false;
-          result += 'H';
-        } else
-          result += '.';
+        PinResult r = expectL(gpioH, gpioL);
+        if (!r.isOk) pass = false;
+        result += r.result;
         break;
 
+      }
       case 'u':
-      case 'Z':
+      case 'Z': {
         wasTest = true;
-        //Serial.println("Z test  - read of pin " +String(gpioL) + " write "+String(gpioH));
-        //Serial.println("WRITTEN HIGH");
-        // pull it high; a Z should sense as H
-        xDigitalWrite(gpioH, HIGH);
-        //delay(2000);
-        if (!xDigitalRead(gpioL)) {
-          //Serial.println("err H");
-          pass = false;
-          result += 'l';  // expected H but got L
-        } else {
-          // pull it low; a Z should sense as L
-          //Serial.println("WRITTEN LOW");
-          xDigitalWrite(gpioH, LOW);
-          //delay(2000);
-          if (xDigitalRead(gpioL)) {
-            //Serial.println("err L");
-            pass = false;
-            result += 'h';  // expected L but got H
-          } else {
-            result += '.';  // OK
-            //Serial.println("ok");
-          }
-        }
-
+        PinResult r = expectZ(gpioH, gpioL);
+        if (!r.isOk) pass = false;
+        result += r.result;
         break;
+      }
 
       case '?':
         forcePrint = true;
-        if (xDigitalRead(gpioL)) result += "1";
-        else result += "0";
+        result = +xDigitalRead(gpioL) ? "1" : "0";
         break;
 
 #ifdef USE_VI_PINS
@@ -228,14 +208,8 @@ boolean test_ic(String scenario, String name) {
     }
   }
 
-// Serial.println(">" + result);
-// delay(1000);
-// }
-
-//  reset();
-
   if (pass) {
-    Serial.println("PASS  : "+ testcase);
+    Serial.println("PASS  : " + testcase);
   } else {
     Serial.println("FAIL  : " + testcase);
   }
@@ -245,11 +219,47 @@ boolean test_ic(String scenario, String name) {
   return pass;
 }
 
+const struct PinResult expectZ(int gpioH, int gpioL) {
+  xDigitalWrite(gpioH, HIGH);
+  if (!xDigitalRead(gpioL)) {
+    return {false, 'l'};
+  } else {
+    xDigitalWrite(gpioH, LOW);
+    if (xDigitalRead(gpioL)) {
+      return {false, 'h'};
+    }
+  }
+
+  return {true, '.'};
+}
+
+struct PinResult expectL(int gpioH, int gpioL) {
+  if (xDigitalRead(gpioL)) {
+    return {false, 'H'};
+  } else {
+    PinResult z = expectZ(gpioH, gpioL);
+    if (z.isOk) {
+      return {false, 'z'};
+    } 
+  }
+  return {true, '.'}; 
+}
+
+const struct PinResult expectH(int gpioH, int gpioL) {
+  if (!xDigitalRead(gpioL)) {
+    return {false, 'L'};
+  } else {
+    PinResult z = expectZ(gpioH, gpioL);
+    if (z.isOk) {
+      return {false, 'z'};
+    } 
+  }
+  return {true, '.'}; 
+}
+
 boolean test_ic(const String& scenario) {
   test_ic(scenario, "");
 }
-
-
 
 /* read from serial io */
 int kbRead() {
@@ -261,7 +271,7 @@ int kbRead() {
 }
 
 void reset() {
-  //Serial.println("\nresetting");
+  Serial.println("resetting");
 
   for (int i = 0; i < NUM_PINS; i++) {
     Pins pinPair = toGPIOPin(i, NUM_PINS);
@@ -269,9 +279,9 @@ void reset() {
     int gpioH = pinPair.gpioH;
 
     // discharge/force to a definitive value - ie low
-    xPinMode(gpioH, OUTPUT);
-    xDigitalWrite(gpioH, LOW);
-        
+    xPinMode(gpioL, OUTPUT);
+    xDigitalWrite(gpioL, LOW);
+
     // disconnect
     xPinMode(gpioL, INPUT);
     xPinMode(gpioH, INPUT);
@@ -279,7 +289,7 @@ void reset() {
 }
 
 void xPinMode(uint8_t p, uint8_t d) {
-  int pin=-1;
+  int pin = -1;
   String device = "";
   if (p < EXTENDER1_OFFSET) {
     pin = p;
@@ -293,9 +303,10 @@ void xPinMode(uint8_t p, uint8_t d) {
     pin = p - EXTENDER2_OFFSET;
     device = "extender2";
     mcp2.pinMode(pin, d);
-  } 
+  }
 
-  //Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) + ")");
+  // Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) +
+  // ")");
 }
 void xDigitalWrite(uint8_t p, uint8_t d) {
   // Serial.println("writing " + String(d) + " to " + String(p));
@@ -327,17 +338,17 @@ String patchScenario(String sin) {
 }
 
 String fillUnusedPins(const String& test) {
-  int unused = 2*unusedSlots(test.length());
+  int unused = 2 * unusedSlots(test.length());
 
   String fill = "";
-  
-  while (unused -- > 0) { 
+
+  while (unused-- > 0) {
     fill += "u";
   }
 
-  String left = test.substring(0, test.length()/2);
-  String right = test.substring((test.length()/2), test.length());
-  
+  String left = test.substring(0, test.length() / 2);
+  String right = test.substring((test.length() / 2), test.length());
+
   // Serial.println("IN    "+ test);
   // Serial.println("LEFT  "+ left);
   // Serial.println("RIGHT "+ right);
@@ -345,4 +356,3 @@ String fillUnusedPins(const String& test) {
 
   return left + fill + right;
 }
-
