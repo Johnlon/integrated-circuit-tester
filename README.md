@@ -58,15 +58,16 @@ Test results
 
 The test results use these codes:
    - .=a pass for that pin - ie expected output was found
-   - -=one of the top two pins - theres a hardware fault on those so dont put the
-   chip there
-   - _=the pin isn't an output so there's no test result
-   - H=a LOW was expected but HIGH was found
-   - L=a HIGH was expected but LOW was found
-   - h=a LOW was expected on the tristate test but HIGH was found
-   - l=a HIGH was expected on the tristate test but LOW was found
+   - H=a LOW or Z was expected but HIGH was found
+   - L=a HIGH or Z was expected but LOW was found
+   - Z=a HIGH or LOW was expected but Z was found
    - 1=the test pattern was ? and the value detected was 1
    - 0=the test pattern was ? and the value detected was 0
+   - _=identifies the pin as an input so there's no test result on this pin
+ Also
+   - -=identifies the top two pins of the socket - in my inital design there's a hardware fault on those so dont put the
+   chip there
+
 
 Then ...
 -----

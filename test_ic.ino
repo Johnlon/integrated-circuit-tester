@@ -60,7 +60,7 @@ boolean test_ic(String scenario, String name) {
     switch (scenario[i]) {
       case PATCH:
       case 'X':
-        // dont care - set to weak pull up so as not to leave floating
+        // dont care - set to weak pull so as not to leave floating
         xPinMode(gpioL, INPUT);
         xPinMode(gpioH, OUTPUT);
         xDigitalWrite(gpioH, LOW);
@@ -100,10 +100,6 @@ boolean test_ic(String scenario, String name) {
 
       // EXPECTATIONS OF THE OUTPUTS OF THE IC
       case 'L':
-        // TODO Do a Z-like test and expect it to always return L - ie pull is
-        // ineffective or is it enought to gently pull it the opposite
-        // direction? << temp solution
-        //  ztest is better and we could show a Z in the output
         xPinMode(gpioL, INPUT);
 
         // weakly pull in the opposite direction to expected.
@@ -113,10 +109,6 @@ boolean test_ic(String scenario, String name) {
         xDigitalWrite(gpioH, HIGH);
         break;
       case 'H':
-        // TODO: Do a Z-like test and expect it to always return L - ie pull is
-        // ineffective or is it enought to gently pull it the opposite
-        // direction? << temp solution
-        //- ztest is better and we could show a Z in the output
         xPinMode(gpioL, INPUT);
 
         // weakly pull in the opposite direction to expected.
@@ -169,14 +161,14 @@ boolean test_ic(String scenario, String name) {
     switch (scenario[i]) {
       case 'H': {
         wasTest = true;
-        PinResult r = expectH(gpioH, gpioL);
+        PinResult r = expectPin('H', gpioH, gpioL);
         if (!r.isOk) pass = false;
         result += r.result;
         break;
       }
       case 'L': {
         wasTest = true;
-        PinResult r = expectL(gpioH, gpioL);
+        PinResult r = expectPin('L', gpioH, gpioL);
         if (!r.isOk) pass = false;
         result += r.result;
         break;
@@ -185,7 +177,7 @@ boolean test_ic(String scenario, String name) {
       case 'u':
       case 'Z': {
         wasTest = true;
-        PinResult r = expectZ(gpioH, gpioL);
+        PinResult r = expectPin('Z', gpioH, gpioL);
         if (!r.isOk) pass = false;
         result += r.result;
         break;
@@ -219,42 +211,33 @@ boolean test_ic(String scenario, String name) {
   return pass;
 }
 
-const struct PinResult expectZ(int gpioH, int gpioL) {
+/* Test a pin's state.
+A simple call to digitalRead() isn't reliable because a disconnected (or test is input) pin might return random values due to floating.
+Instead, we pull the pin it in a particular direction then checking to see if the pin followed the pull or not.
+If the detected value is the opposite of the pull then this signals that the pin is asserting that definite value.
+If the pin follws the pull in both directions then the pin cannot be asserting a definite level and must be a disconnected/a high-Z state/an input.
+
+This functions assumes gpioH is already configured as an output and gpioL is already configured as an input
+*/
+char pinState(int gpioH, int gpioL) {
+  
   xDigitalWrite(gpioH, HIGH);
   if (!xDigitalRead(gpioL)) {
-    return {false, 'l'};
+    return 'L';
   } else {
     xDigitalWrite(gpioH, LOW);
     if (xDigitalRead(gpioL)) {
-      return {false, 'h'};
+      return 'H';
     }
   }
 
-  return {true, '.'};
+  return 'Z';
 }
 
-struct PinResult expectL(int gpioH, int gpioL) {
-  if (xDigitalRead(gpioL)) {
-    return {false, 'H'};
-  } else {
-    PinResult z = expectZ(gpioH, gpioL);
-    if (z.isOk) {
-      return {false, 'z'};
-    } 
-  }
-  return {true, '.'}; 
-}
-
-const struct PinResult expectH(int gpioH, int gpioL) {
-  if (!xDigitalRead(gpioL)) {
-    return {false, 'L'};
-  } else {
-    PinResult z = expectZ(gpioH, gpioL);
-    if (z.isOk) {
-      return {false, 'z'};
-    } 
-  }
-  return {true, '.'}; 
+const struct PinResult expectPin(char mode, int gpioH, int gpioL) {
+  char r = pinState(gpioH, gpioL);
+  if ( r == mode) return {true, '.'};
+  return {false, r};
 }
 
 boolean test_ic(const String& scenario) {
@@ -278,7 +261,7 @@ void reset() {
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
 
-    // discharge/force to a definitive value - ie low
+    // force to a definitive value - ie low - removing any stray charge on it
     xPinMode(gpioL, OUTPUT);
     xDigitalWrite(gpioL, LOW);
 
@@ -308,6 +291,7 @@ void xPinMode(uint8_t p, uint8_t d) {
   // Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) +
   // ")");
 }
+
 void xDigitalWrite(uint8_t p, uint8_t d) {
   // Serial.println("writing " + String(d) + " to " + String(p));
 
