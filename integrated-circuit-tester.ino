@@ -1,4 +1,4 @@
-#include "chip.h"
+#include "test_ic.h"
 
   // 74245 pin 1 dir 0=a2b, 1=b2a
   // left side is port A
