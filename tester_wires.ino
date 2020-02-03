@@ -136,11 +136,13 @@ int NUM_PINS() {
 // pinCount is the number of pins on the chip being tested 
 struct Pins toGPIOPin(int icPin, int pinCount) {
   if (NUM_PINS() != SOCKET_PINS) {
-    halt("\nsocket has " + String(SOCKET_PINS) + " pins but cfg has "+ String(NUM_PINS()));
+    Serial.println("ERR2");
+    halt("socket has " + String(SOCKET_PINS) + " pins but cfg has "+ String(NUM_PINS()));
   }
 
   if (icPin < 0 || icPin >= NUM_PINS()) {
-    halt("\nNo test pin configured for IC pin "  + String(icPin));
+    Serial.println("ERR3");
+    halt("No test pin configured for IC pin "  + String(icPin));
   }
 
   // find out which Zif socket pin this is
@@ -191,7 +193,7 @@ char pinState(int gpioH, int gpioL) {
 
 void xPinMode(uint8_t p, uint8_t d) {
   int pin = -1;
-  String device = "";
+  const char* device = "";
   if (p < EXTENDER1_OFFSET) {
     pin = p;
     device = "arduino";
@@ -219,8 +221,10 @@ void xDigitalWrite(uint8_t p, uint8_t d) {
     mcp1.digitalWrite(p - 100, d);
   else if (p < 300)
     mcp2.digitalWrite(p - 200, d);
-  else
-    halt("Error pin number of of range: " + String(p));
+  else {
+    Serial.println("ERR4");
+    halt("Error pin number out of range: " + String(p));
+  }
 }
 uint8_t xDigitalRead(uint8_t p) {
   if (p < 100) {
@@ -229,6 +233,8 @@ uint8_t xDigitalRead(uint8_t p) {
     return mcp1.digitalRead(p - 100);
   else if (p < 300)
     return mcp2.digitalRead(p - 200);
-  else
+  else {
+    Serial.println("ERR5");
     halt("Error pin number of of range: " + String(p));
+  }
 }

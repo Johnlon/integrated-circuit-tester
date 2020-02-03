@@ -1,36 +1,19 @@
 #include "test_ic.h"
+#include "chipsDatabase.h"
+#include "myChipsDatabase.h"
 
   // 74245 pin 1 dir 0=a2b, 1=b2a
   // left side is port A
   // pin 19 of 20 is /OE
-Chip cEmpty = chip("EMPTY", "Empty ZIF")
-                  .scenario("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty");
-
-Chip c74245 = chip("74245", "Transceiver 8 bit")
-                  .scenario("XZZZZZZZZG/ZZZZZZZZ1V", "OE disabled")
-                  .scenario("100000000G/LLLLLLLL0V", "A to B all low")
-                  .scenario("111111111G/HHHHHHHH0V", "A to B all high")
-                  .scenario("0LLLLLLLLG/000000000V", "B to A all low")
-                  .scenario("0HHHHHHHHG/111111110V", "B to A all high");
-
-Chip c74242 = chip("74242", "Transceiver Inverting 4 bit")
-                  .scenario("1ZZZZZG/ZZZZZ0V", "OEA and OEB both disabled")
-                  .scenario("0ZZZZZG/ZZZZZ1V", "OEA and OEB both enabled")
-                  .scenario("0Z0000G/HHHHZ1V", "A to B all low")
-                  .scenario("0Z1111G/LLLLZ1V", "A to B all high")
-                  .scenario("1ZHHHHG/0000Z1V", "B to A all low")
-                  .scenario("1ZLLLLG/1111Z1V", "B to A all high");
-
-
-// Chip cLedArray8 = chip("LED Array 8 ", "8 bar led array")
-//                   .scenario("00000000/ZZZZZZZZ", "No power")
-//                   .scenario("11111111/HHHHHHHH", "All powered")
-//                   ;
 
 // only include the chips you want to include in the scan - reduces the
 // program storage space needed
-Chip chips[] = {c74245, c74242, cEmpty};
-
+Chip chips[] = {
+  CHIP_EMPTY,
+  CHIP_c74245, 
+  CHIP_74138
+ };
+ 
 void setup() {
   Serial.begin(9600);
   mcp_setup();
@@ -66,9 +49,11 @@ void identify() {
     }
 
     if (allok)
-      Serial.println("matches " + String(chip.name));
+      Serial.print("matches ");
     else
-      Serial.println("not " + String(chip.name));
+      Serial.print("not ");
+    
+    Serial.println(chip.name);
   }
 
   reset();
@@ -124,5 +109,5 @@ void barLedTestPattern() {
       delay(d2);
     }
   }
-  }
+}
 void loop() {}

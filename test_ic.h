@@ -1,10 +1,12 @@
+#ifndef _TEST_IC_
+#define  _TEST_IC_
 
 struct Scenario {
   const char* test;
   const char* name;
   Scenario* next;
 
-  Scenario(const char* test, const char* tname)
+  Scenario(const char* test,const char* tname)
       : next(NULL), test(test), name(tname) {}
 };
 
@@ -13,10 +15,13 @@ struct Chip {
   const char* description;
 
   Scenario* scenarios;
-  Chip* next;
 
   Chip(const char* name, const char* desc)
-      : name(name), description(desc), scenarios(NULL), next(NULL) {}
+      : name(name), description(desc), scenarios(NULL) {}
+
+  Chip& scenario(const char* test) {
+    return scenario(test, "");
+  }
 
   Chip& scenario(const char* test, const char* tname) {
     Scenario* s = new Scenario(test, tname);
@@ -39,3 +44,5 @@ struct Chip {
 Chip chip(const char* name, const char* desc) {
   return Chip(name,desc);
 }
+
+#endif

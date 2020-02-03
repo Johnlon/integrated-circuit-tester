@@ -1,15 +1,23 @@
 #include "tester_wires.h"
 
-
-#ifdef USE_VI_PINS
-#define PATCH '-'
-#endif
-
 struct PinResult {
   boolean isOk;
   char result;
 };
 
+
+char* strip(const char * str, char remove) {
+  int len = strlen(str);
+  char * buf = strdup(str);
+  int to = 0;
+  for (int from = 0; from<len; from++) {
+    if (buf[from] != remove) {
+      buf[to++] = buf[from];
+    }
+  }
+  buf[to++] = '\0';
+  return buf;
+}
 
 /*
    param "scenario" is the test case input and output state definition.
@@ -23,25 +31,38 @@ struct PinResult {
 
    returns true if test passes, false otherwise
 */
-boolean test_ic(String scenario, String name) {
+boolean test_ic(const char*  raw, const char* name) {
   // reset();
 
-  scenario.replace("/", "");
+  //scenario.replace("/", "");
+  char * scenario = strip(raw, '/');
 
 #ifdef USE_VI_PINS  // but in original board - this tweak pushes the test case
                     // down the Zif by on position
-  scenario = patchScenario(scenario);
+  char * patched = patchScenario(scenario);
+  free(scenario);
+  scenario = patched;
 #endif
 
-  scenario = fillUnusedPins(scenario);
+  char * filled = fillUnusedPins(scenario);
+  free(scenario);
+  scenario = filled;
+  
+  int pins = strlen(scenario);
 
-  String testcase = scenario + "  : " + name;
+  const char* sep = " : ";
+
+  char testcase[strlen(scenario)+ strlen(sep) + strlen(name)];
+  strcpy(testcase, scenario);
+  strcat(testcase, sep);
+  strcat(testcase, name);
 
   int clkPin = -1;
-  int pins = scenario.length();
-
+  
   if (pins % 2 != 0) {
-    halt("Scenario must have even number of pins : '" + scenario + "'");
+    Serial.println("ERR1");
+    Serial.println(scenario);
+    halt("Scenario must have even number of pins");
   }
 
   // Setting Vcc, GND and output pins of the IC under test
@@ -52,7 +73,7 @@ boolean test_ic(String scenario, String name) {
 
     switch (scenario[i]) {
 #ifdef USE_VI_PINS
-      case PATCH:
+      case '-':
 #endif
       case 'X':
         // dont care - set to weak pull so as not to leave floating
@@ -184,7 +205,7 @@ boolean test_ic(String scenario, String name) {
         break;
 
 #ifdef USE_VI_PINS
-      case PATCH:
+      case '-':
         result += '-';
         break;
 #endif
@@ -196,12 +217,15 @@ boolean test_ic(String scenario, String name) {
   }
 
   if (pass) {
-    Serial.println("PASS  : " + testcase);
+    Serial.print("PASS  : ");
   } else {
-    Serial.println("FAIL  : " + testcase);
+    Serial.print("FAIL  : ");
   }
-
+  Serial.println(testcase);
+  
   Serial.println("Result: " + result + "  : " + name);
+
+  free(scenario);
 
   return pass;
 }
@@ -213,7 +237,7 @@ const struct PinResult expectPin(char mode, int gpioH, int gpioL) {
   return {false, r};
 }
 
-boolean test_ic(const String& scenario) {
+boolean test_ic(const char* scenario) {
   test_ic(scenario, "");
 }
 
@@ -227,7 +251,7 @@ int kbRead() {
 }
 
 void reset() {
-  Serial.println("resetting");
+  Serial.println("---");
 
   for (int i = 0; i < NUM_PINS(); i++) {
     Pins pinPair = toGPIOPin(i, NUM_PINS());
@@ -245,26 +269,38 @@ void reset() {
 }
 // hardware design error - A6/A7 dont work as outputs so shift the scenario down
 // one set of pins. do not use the top row in the zip socket
-String patchScenario(String sin) {
-  return PATCH + sin + PATCH;
+char* patchScenario(const char* sin) {
+  char* buf = (char*)malloc(strlen(sin)+2);
+  sprintf(buf, "-%s-", sin);
+  return buf;
 }
 
-String fillUnusedPins(const String& test) {
-  int unused = 2 * unusedSlots(test.length());
+char* fillUnusedPins(const char* test) {
+  //Serial.println("FILLING " + test);
+  int len = strlen(test);
+  int unused = 2 * unusedSlots(len);
 
-  String fill = "";
+  char fill[unused];
 
-  while (unused-- > 0) {
-    fill += "u";
+  int i = 0;
+  while (i < unused) {
+    fill[i++] = 'u';
   }
 
-  String left = test.substring(0, test.length() / 2);
-  String right = test.substring((test.length() / 2), test.length());
+  char left[len];
+  strcpy(left, test);
+  left[len / 2] = '\0';
+
+  char right[len];
+  strcpy(right, test+(len / 2));
 
   // Serial.println("IN    "+ test);
   // Serial.println("LEFT  "+ left);
   // Serial.println("RIGHT "+ right);
   // Serial.println("FILL  "+ fill);
 
-  return left + fill + right;
+  char *buf = (char*)malloc(len + unused);
+  sprintf(buf, "%s%s%s", left, fill, right);
+  
+  return buf;
 }
