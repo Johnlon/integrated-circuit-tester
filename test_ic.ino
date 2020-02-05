@@ -35,7 +35,7 @@ boolean test_ic(const char*  raw, const char* name) {
 
   const char* sep = " : ";
 
-  char testcase[strlen(scenario) + strlen(sep) + strlen(name)];
+  char testcase[strlen(scenario) + strlen(sep) + strlen(name) +1];
   strcpy(testcase, scenario);
   strcat(testcase, sep);
   strcat(testcase, name);
@@ -246,8 +246,6 @@ void reset() {
     xPinMode(gpioH, INPUT);
   }
 }
-
-
 
 char* strip(const char * str, char remove) {
   static char stripped[SOCKET_PINS + 1];
