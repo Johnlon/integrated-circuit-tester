@@ -9,9 +9,6 @@ void mcp_setup() {
   mcp2.begin(1);  // address 1 = extender 2
 }
 
-// bottom 4 pins of 28 holes are not connected
-#define SOCKET_PINS 24
-
 #define EXTENDER1_OFFSET 100
 #define EXTENDER2_OFFSET 200
 
@@ -41,7 +38,7 @@ void mcp_setup() {
 // top row we are still in business.
 // This software automatically skips those two Zif pins so make sure to insert the test chip on position down,
 // or solder a 24 pin Zip in a position one down from it's natural position.  
-struct Pins GPIO_PINS_V1[] = {
+struct Pins GPIO_PINS_V1[SOCKET_PINS] = {
   // top left
   {8, 9}, // DEAD - HW BUG
   {6, 7},
@@ -87,7 +84,7 @@ struct Pins GPIO_PINS_V1[] = {
 // See schematic .. https://www.arduino.cc/en/uploads/Main/Arduino_Nano-Rev3.2-SCH.pdf
 // Nano specific issue .. https://forum.arduino.cc/index.php?topic=493665.0
 // and https://arduinodiy.wordpress.com/2012/04/28/solving-the-d13-problem-on-your-arduino/
-Pins GPIO_PINS_v2[] = {
+Pins GPIO_PINS_v2[SOCKET_PINS] = {
   // top left
   {6, 7},
   {4, 5},
@@ -127,20 +124,13 @@ Pins GPIO_PINS_v2[] = {
 #define GPIO_PINS GPIO_PINS_V1 
 #endif
 
-int NUM_PINS() {
-  return (sizeof(GPIO_PINS) / sizeof(Pins));
-}
 
 // map from test ic pin to GPIO PINS
 // icPin is the pin number on chip being tested
 // pinCount is the number of pins on the chip being tested 
 struct Pins toGPIOPin(int icPin, int pinCount) {
-  if (NUM_PINS() != SOCKET_PINS) {
-    Serial.println("ERR2");
-    halt("socket has " + String(SOCKET_PINS) + " pins but cfg has "+ String(NUM_PINS()));
-  }
 
-  if (icPin < 0 || icPin >= NUM_PINS()) {
+  if (icPin < 0 || icPin >= SOCKET_PINS) {
     Serial.println("ERR3");
     halt("No test pin configured for IC pin "  + String(icPin));
   }

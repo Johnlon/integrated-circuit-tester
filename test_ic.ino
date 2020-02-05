@@ -5,20 +5,6 @@ struct PinResult {
   char result;
 };
 
-
-char* strip(const char * str, char remove) {
-  int len = strlen(str);
-  char * buf = strdup(str);
-  int to = 0;
-  for (int from = 0; from<len; from++) {
-    if (buf[from] != remove) {
-      buf[to++] = buf[from];
-    }
-  }
-  buf[to++] = '\0';
-  return buf;
-}
-
 /*
    param "scenario" is the test case input and output state definition.
    even a trivial ic will require a sequence of these cases to tests it
@@ -38,27 +24,24 @@ boolean test_ic(const char*  raw, const char* name) {
   char * scenario = strip(raw, '/');
 
 #ifdef USE_VI_PINS  // but in original board - this tweak pushes the test case
-                    // down the Zif by on position
-  char * patched = patchScenario(scenario);
-  free(scenario);
-  scenario = patched;
+  // down the Zif by on position
+  scenario = patchScenario(scenario);
+
 #endif
 
-  char * filled = fillUnusedPins(scenario);
-  free(scenario);
-  scenario = filled;
-  
+  scenario = fillUnusedPins(scenario);
+
   int pins = strlen(scenario);
 
   const char* sep = " : ";
 
-  char testcase[strlen(scenario)+ strlen(sep) + strlen(name)];
+  char testcase[strlen(scenario) + strlen(sep) + strlen(name)];
   strcpy(testcase, scenario);
   strcat(testcase, sep);
   strcat(testcase, name);
 
   int clkPin = -1;
-  
+
   if (pins % 2 != 0) {
     Serial.println("ERR1");
     Serial.println(scenario);
@@ -118,7 +101,7 @@ boolean test_ic(const char*  raw, const char* name) {
       case 'L':
         xPinMode(gpioL, INPUT);
 
-        // weakly pull in the opposite direction to expected.
+        // will be weakly pulled in the opposite direction to expected.
         // if its still the expected value the it is a solid pass and not and
         // not a random floating value
         xPinMode(gpioH, OUTPUT);
@@ -127,7 +110,7 @@ boolean test_ic(const char*  raw, const char* name) {
       case 'H':
         xPinMode(gpioL, INPUT);
 
-        // weakly pull in the opposite direction to expected.
+        // will be weakly pulled in the opposite direction to expected.
         // if its still the expected value the it is a solid pass and not and
         // not a random floating value
         xPinMode(gpioH, OUTPUT);
@@ -150,17 +133,12 @@ boolean test_ic(const char*  raw, const char* name) {
     }
   }
 
-  delay(5);
-
   // toggle the clock high then low
   if (clkPin != -1) {
-    Serial.println("\nclocking");
-
+    //Serial.println("clocking");
     xDigitalWrite(clkPin, HIGH);
     xDigitalWrite(clkPin, LOW);
   }
-
-  delay(5);
 
   //  Serial.println("Looping");
   boolean pass = true;
@@ -176,28 +154,28 @@ boolean test_ic(const char*  raw, const char* name) {
 
     switch (scenario[i]) {
       case 'H': {
-        wasTest = true;
-        PinResult r = expectPin('H', gpioH, gpioL);
-        if (!r.isOk) pass = false;
-        result += r.result;
-        break;
-      }
+          wasTest = true;
+          PinResult r = expectPin('H', gpioH, gpioL);
+          if (!r.isOk) pass = false;
+          result += r.result;
+          break;
+        }
       case 'L': {
-        wasTest = true;
-        PinResult r = expectPin('L', gpioH, gpioL);
-        if (!r.isOk) pass = false;
-        result += r.result;
-        break;
+          wasTest = true;
+          PinResult r = expectPin('L', gpioH, gpioL);
+          if (!r.isOk) pass = false;
+          result += r.result;
+          break;
 
-      }
+        }
       case 'u':
       case 'Z': {
-        wasTest = true;
-        PinResult r = expectPin('Z', gpioH, gpioL);
-        if (!r.isOk) pass = false;
-        result += r.result;
-        break;
-      }
+          wasTest = true;
+          PinResult r = expectPin('Z', gpioH, gpioL);
+          if (!r.isOk) pass = false;
+          result += r.result;
+          break;
+        }
 
       case '?':
         forcePrint = true;
@@ -222,10 +200,8 @@ boolean test_ic(const char*  raw, const char* name) {
     Serial.print("FAIL  : ");
   }
   Serial.println(testcase);
-  
-  Serial.println("Result: " + result + "  : " + name);
 
-  free(scenario);
+  Serial.println("Result: " + result);
 
   return pass;
 }
@@ -253,8 +229,8 @@ int kbRead() {
 void reset() {
   Serial.println("---");
 
-  for (int i = 0; i < NUM_PINS(); i++) {
-    Pins pinPair = toGPIOPin(i, NUM_PINS());
+  for (int i = 0; i < SOCKET_PINS; i++) {
+    Pins pinPair = toGPIOPin(i, SOCKET_PINS);
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
 
@@ -262,45 +238,80 @@ void reset() {
     xPinMode(gpioL, OUTPUT);
     xDigitalWrite(gpioL, LOW);
 
+    xPinMode(gpioH, OUTPUT);
+    xDigitalWrite(gpioH, LOW);
+
     // disconnect
     xPinMode(gpioL, INPUT);
     xPinMode(gpioH, INPUT);
   }
 }
-// hardware design error - A6/A7 dont work as outputs so shift the scenario down
-// one set of pins. do not use the top row in the zip socket
-char* patchScenario(const char* sin) {
-  char* buf = (char*)malloc(strlen(sin)+2);
-  sprintf(buf, "-%s-", sin);
-  return buf;
+
+
+
+char* strip(const char * str, char remove) {
+  static char stripped[SOCKET_PINS + 1];
+  int len = strlen(str);
+
+  int to = 0;
+  for (int from = 0; from < len; from++) {
+    if (str[from] != remove) {
+      stripped[to++] = str[from];
+    }
+  }
+  stripped[to] = '\0';
+  return stripped;
 }
 
-char* fillUnusedPins(const char* test) {
-  //Serial.println("FILLING " + test);
-  int len = strlen(test);
-  int unused = 2 * unusedSlots(len);
+// hardware design error - A6/A7 dont work as outputs so shift the scenario down
+// one set of pins. do not use the top row in the zip socket
 
-  char fill[unused];
-
-  int i = 0;
-  while (i < unused) {
-    fill[i++] = 'u';
+char* patchScenario(const char* sin) {
+  static char patchedScenario[SOCKET_PINS + 1];
+  if (strlen(sin) > (SOCKET_PINS - 2)) {
+    error(sin);
+    halt("can't patch scenario - too long");
   }
 
-  char left[len];
+  sprintf(patchedScenario, "-%s-", sin);
+  return patchedScenario;
+}
+
+
+
+char* fillUnusedPins(const char* test) {
+  static char filledUnusedPins[SOCKET_PINS + 1];
+
+//Serial.println("FILLING " + test);
+  int len = strlen(test);
+
+  int unusedPins = 2 * unusedSlots(len);
+
+  char fill[unusedPins + 1];
+
+  int i = 0;
+  while (i < unusedPins) {
+    fill[i++] = 'u';
+  }
+  fill[i] = '\0';
+
+  char left[len + 1];
   strcpy(left, test);
   left[len / 2] = '\0';
 
-  char right[len];
-  strcpy(right, test+(len / 2));
+  char right[len + 1];
+  strcpy(right, test + (len / 2));
+  right[len / 2] = '\0';
 
-  // Serial.println("IN    "+ test);
-  // Serial.println("LEFT  "+ left);
-  // Serial.println("RIGHT "+ right);
-  // Serial.println("FILL  "+ fill);
+  // Serial.println("IN    "+ String(test));
+  // Serial.println("LEFT  "+ String(left));
+  // Serial.println("RIGHT "+ String(right));
+  // Serial.println("FILL  "+ String(fill));
 
-  char *buf = (char*)malloc(len + unused);
-  sprintf(buf, "%s%s%s", left, fill, right);
-  
-  return buf;
+  filledUnusedPins[0] = '\0';
+  strcpy(filledUnusedPins , left);
+  strcat(filledUnusedPins , fill);
+  strcat(filledUnusedPins , right);
+
+  return filledUnusedPins;
 }

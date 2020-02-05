@@ -9,13 +9,14 @@
 // only include the chips you want to include in the scan - reduces the
 // program storage space needed
 Chip chips[] = {
-  CHIP_EMPTY,
-  CHIP_c74245, 
-  CHIP_74138
+  //CHIP_EMPTY,
+  //CHIP_x74245, 
+  //CHIP_74138
+  CHIP_x74173
  };
  
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9200);
   mcp_setup();
 
   //emptySocket();

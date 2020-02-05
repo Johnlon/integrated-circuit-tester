@@ -9,4 +9,8 @@ struct Pins {
   int gpioH; // high resistance - used as a gpio output to apply a weak pull up or down to the test ic during high-Z tests; the rest of the the time set as a gpio input and ignored (no-op)
 };
 
+
+// bottom 4 pins of 28 holes are not connected
+#define SOCKET_PINS 24
+
 #endif

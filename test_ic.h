@@ -1,6 +1,8 @@
 #ifndef _TEST_IC_
 #define  _TEST_IC_
 
+#include "tester_wires.h"
+
 struct Scenario {
   const char* test;
   const char* name;

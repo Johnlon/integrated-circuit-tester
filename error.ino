@@ -9,7 +9,7 @@ void halt(String msg) {
     Serial.println("halted");
     Serial.println(msg);
     while (1) {
-        delay(1000);
+        delay(100000);
         Serial.print(".");
     }
 }
