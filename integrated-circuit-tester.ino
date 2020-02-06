@@ -18,9 +18,10 @@ void setup() {
 }
 
 void usage() {
-  println(INFO, "perform test  >  t:testpattern[:description]");
-  println(INFO, "repeat test   >  t");
-  println(INFO, "read all pins >  ?");      
+  println(INFO, "perform test       >  t:testpattern[:description]");
+  println(INFO, "repeat last test   >  t");
+  println(INFO, "read all pins      >  ?");      
+  println(INFO, "repeat last action >  /");      
 }
 
 void interactive() {
@@ -28,15 +29,25 @@ void interactive() {
   usage();
   
   char op;
+  char lastOp=0;
   do {
-    static char buf[100+1] = ""; // for tokenisation
     static char data[100+1] = "";
     readline(data, 100);
-    strcpy(buf, data);
+ 
+    static char lastdata[100+1] = "";
+    op = data[0];
+    if (op == '/') {
+      op = lastOp;
+      strcpy(data, lastdata);
+    } 
     
-    char *token = strtok(buf, ":");
-    op = token[0];
-
+    lastOp = op;
+    strcpy(lastdata, data);
+    
+    static char tokenise[100+1] = ""; // for tokenisation
+    strcpy(tokenise, data);
+    char *token = strtok(tokenise, ":");
+    
     switch(op) {
       case 'h': {
         usage();
