@@ -1,5 +1,6 @@
 #include <Adafruit_MCP23017.h>
 #include "tester_wires.h"
+#include "io.h"
 
 Adafruit_MCP23017 mcp1;
 Adafruit_MCP23017 mcp2;
@@ -32,13 +33,15 @@ void mcp_setup() {
 #define MCP1(X) (EXTENDER1_OFFSET+X)
 #define MCP2(X) (EXTENDER2_OFFSET+X)
 
+#ifdef USE_VI_PINS
+
 // This revision tries to use A6/A7 as outputs but thats not supported.
 // Unfortunately, this we was the circuit I turned into PCBs so that's sad. 
 // Luckily however, A6/A7 gpio pins were used only by the top row of the socket so as long as we avoid the
 // top row we are still in business.
 // This software automatically skips those two Zif pins so make sure to insert the test chip on position down,
 // or solder a 24 pin Zip in a position one down from it's natural position.  
-struct Pins GPIO_PINS_V1[SOCKET_PINS] = {
+struct Pins GPIO_PINS[SOCKET_PINS] = {
   // top left
   {8, 9}, // DEAD - HW BUG
   {6, 7},
@@ -74,7 +77,9 @@ struct Pins GPIO_PINS_V1[SOCKET_PINS] = {
   
   // top right  - ie Vcc on 74 series
  };
+#endif
 
+#ifndef USE_VI_PINS
 // Map of IC test pins to pin pairs on the arduino down left side of the chip under test (or the zif socket) and up the right side
 // first pin is pin 1 at top left of chip.
 // Warning This pin setup uses pin D13 as part of tp13 (12th row). However, there are multiple references that
@@ -84,7 +89,7 @@ struct Pins GPIO_PINS_V1[SOCKET_PINS] = {
 // See schematic .. https://www.arduino.cc/en/uploads/Main/Arduino_Nano-Rev3.2-SCH.pdf
 // Nano specific issue .. https://forum.arduino.cc/index.php?topic=493665.0
 // and https://arduinodiy.wordpress.com/2012/04/28/solving-the-d13-problem-on-your-arduino/
-Pins GPIO_PINS_v2[SOCKET_PINS] = {
+Pins GPIO_PINS[SOCKET_PINS] = {
   // top left
   {6, 7},
   {4, 5},
@@ -115,13 +120,6 @@ Pins GPIO_PINS_v2[SOCKET_PINS] = {
   {A3, A2}
   // top right  - ie Vcc on 74 series
 };
-
-#ifndef USE_VI_PINS
-// use corrected pinout
-#define GPIO_PINS GPIO_PINS_V2
-#else
-// use original pinout with A6/A7 usage at top of socket
-#define GPIO_PINS GPIO_PINS_V1 
 #endif
 
 
@@ -131,8 +129,7 @@ Pins GPIO_PINS_v2[SOCKET_PINS] = {
 struct Pins toGPIOPin(int icPin, int pinCount) {
 
   if (icPin < 0 || icPin >= SOCKET_PINS) {
-    Serial.println("ERR3");
-    halt("No test pin configured for IC pin "  + String(icPin));
+    println(HALT, "No test pin configured for IC pin ", itoa(icPin));
   }
 
   // find out which Zif socket pin this is
@@ -198,12 +195,12 @@ void xPinMode(uint8_t p, uint8_t d) {
     mcp2.pinMode(pin, d);
   }
 
-  // Serial.println("xPinMode("+  device + " pin " + pin + ", " + String(d) +
+  // println("xPinMode("+  device + " pin " + pin + ", " + String(d) +
   // ")");
 }
 
 void xDigitalWrite(uint8_t p, uint8_t d) {
-  // Serial.println("writing " + String(d) + " to " + String(p));
+  // println("writing " + String(d) + " to " + String(p));
 
   if (p < 100)
     digitalWrite(p, d);
@@ -211,10 +208,8 @@ void xDigitalWrite(uint8_t p, uint8_t d) {
     mcp1.digitalWrite(p - 100, d);
   else if (p < 300)
     mcp2.digitalWrite(p - 200, d);
-  else {
-    Serial.println("ERR4");
-    halt("Error pin number out of range: " + String(p));
-  }
+  else 
+    println(HALT, "Pin number out of range: ", itoa(p));
 }
 uint8_t xDigitalRead(uint8_t p) {
   if (p < 100) {
@@ -223,8 +218,6 @@ uint8_t xDigitalRead(uint8_t p) {
     return mcp1.digitalRead(p - 100);
   else if (p < 300)
     return mcp2.digitalRead(p - 200);
-  else {
-    Serial.println("ERR5");
-    halt("Error pin number of of range: " + String(p));
-  }
+  else
+    println(HALT, "Pin number out of range: ", itoa(p));
 }

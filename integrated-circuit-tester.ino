@@ -1,47 +1,103 @@
 #include "test_ic.h"
 #include "chipsDatabase.h"
 #include "myChipsDatabase.h"
+#include "io.h"
 
-  // 74245 pin 1 dir 0=a2b, 1=b2a
-  // left side is port A
-  // pin 19 of 20 is /OE
-
-// only include the chips you want to include in the scan - reduces the
-// program storage space needed
-Chip chips[] = {
-  //CHIP_EMPTY,
-  //CHIP_x74245, 
-  //CHIP_74138
-  CHIP_x74173
- };
- 
 void setup() {
-  Serial.begin(9200);
+  Serial.begin(9600);
   mcp_setup();
 
+  interactive();
+  
   //emptySocket();
-  identify();
+  //identify();
   //barLedTestPattern();
 
   reset();
   delay(1000000);
 }
 
+void usage() {
+  println(INFO, "perform test  >  t:testpattern[:description]");
+  println(INFO, "repeat test   >  t");
+  println(INFO, "read all pins >  ?");      
+}
+
+void interactive() {
+  println(INFO, "INTERACTIVE MODE:");
+  usage();
+  
+  char op;
+  do {
+    static char buf[100+1] = ""; // for tokenisation
+    static char data[100+1] = "";
+    readline(data, 100);
+    strcpy(buf, data);
+    
+    char *token = strtok(buf, ":");
+    op = token[0];
+
+    switch(op) {
+      case 'h': {
+        usage();
+        break;
+      }
+      case 't': {
+        static char prevTestcase[100+1] = "";
+        char* testcase = strtok(NULL, ":");
+        if (testcase == NULL) {
+          if (prevTestcase[0]==0) {
+            println(ERROR, "missing testcase argument in '", data, "'");
+            break;
+          } else
+            testcase = prevTestcase;
+        } else {
+          strcpy(prevTestcase, testcase);
+        }
+        char* desc = strtok(NULL, ":");
+        if (desc == NULL) desc="";
+        test_ic(testcase, desc);
+      }
+      break;
+      
+      case '?': {
+        char buf[SOCKET_PINS-2+1];
+        fill(buf, SOCKET_PINS-2+1,'?');
+        test_ic(buf);
+      }
+      break;
+
+    }
+    
+  
+  } while (op != 'q');
+
+  println(HALT, "quit");
+}
+
 void identify() {
+  // only include the chips you want to include in the scan - reduces the
+  // program storage space needed
+  Chip chips[] = {
+    //CHIP_EMPTY,
+    //CHIP_c74245, 
+    //CHIP_74138
+    CHIP_x74173
+   };
+
+  
   // Work in progress - chip detection - test all scenarios
-  Serial.println("\n=======================");
-  Serial.println("IDENTIFYING ... ");
+  println(INFO, "\n=======================");
+  println(INFO, "IDENTIFYING ... ");
 
   for (const Chip& chip : chips) {
     reset();
 
-    Serial.println("\nTesting: " + String(chip.name) + " : " +
-                   String(chip.description));
+    println(INFO, "\nTesting: ", chip.name, " : " , chip.description);
 
     const Scenario* testcase = chip.scenarios;
     bool allok = true;
     while (testcase != NULL) {
-      // reset();
 
       bool ok = test_ic(testcase->test, testcase->name);
       if (!ok)
@@ -50,11 +106,11 @@ void identify() {
     }
 
     if (allok)
-      Serial.print("matches ");
+      println(INFO, "matches ");
     else
-      Serial.print("not ");
+      println(INFO, "not ");
     
-    Serial.println(chip.name);
+    println(INFO, chip.name);
   }
 
   reset();
@@ -64,8 +120,9 @@ void emptySocket() {
   // 11 pin each side socket empty self test - 11 because orig hw has bug on top
   test_ic("ZZZZZZZZZZZ/ZZZZZZZZZZZ", "Empty socket self test");
 }
+
 void decay() {
-  Serial.println("Testcase :  1111111111111111111111");
+  println(INFO, "Testcase :  1111111111111111111111");
   test_ic("1111111111111111111111");            // capacitance test
   test_ic("??????????????????????", "0 secs");  // capacitance test
   delay(1000);

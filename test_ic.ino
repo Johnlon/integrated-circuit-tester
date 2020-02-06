@@ -1,4 +1,5 @@
 #include "tester_wires.h"
+#include "io.h"
 
 struct PinResult {
   boolean isOk;
@@ -18,20 +19,26 @@ struct PinResult {
    returns true if test passes, false otherwise
 */
 boolean test_ic(const char*  raw, const char* name) {
-  // reset();
 
-  //scenario.replace("/", "");
   char * scenario = strip(raw, '/');
+  if (scenario == NULL) return false;
 
 #ifdef USE_VI_PINS  // but in original board - this tweak pushes the test case
   // down the Zif by on position
   scenario = patchScenario(scenario);
+  if (scenario == NULL) return false;
 
 #endif
 
   scenario = fillUnusedPins(scenario);
+  if (scenario == NULL) return false;
 
   int pins = strlen(scenario);
+
+  if (pins > SOCKET_PINS) {
+      println(ERROR, scenario, ": testcase too long, max allowed len is ", itoa(SOCKET_PINS));
+      return false;
+  }
 
   const char* sep = " : ";
 
@@ -42,10 +49,9 @@ boolean test_ic(const char*  raw, const char* name) {
 
   int clkPin = -1;
 
-  if (pins % 2 != 0) {
-    Serial.println("ERR1");
-    Serial.println(scenario);
-    halt("Scenario must have even number of pins");
+  if (pins % 2 != 0) {;
+    println(ERROR, scenario, ": Scenario must have even number of pins");
+    return false;  
   }
 
   // Setting Vcc, GND and output pins of the IC under test
@@ -54,7 +60,9 @@ boolean test_ic(const char*  raw, const char* name) {
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
 
-    switch (scenario[i]) {
+    char code = scenario[i];
+    
+    switch (code) {
 #ifdef USE_VI_PINS
       case '-':
 #endif
@@ -121,87 +129,84 @@ boolean test_ic(const char*  raw, const char* name) {
       // one with gpioL as H and another as L to see if this
       case 'u':
       case 'Z':
+      case '?':
         xPinMode(gpioL, INPUT);
         xPinMode(gpioH, OUTPUT);
         break;
 
-      case '?':
-        // TODO: test for Z and we could show a Z in the output
-        xPinMode(gpioL, INPUT);
-        xPinMode(gpioH, INPUT);
-        break;
+      default:
+        char location[SOCKET_PINS+1] = "";
+        fill(location, SOCKET_PINS, ' ');
+        location[i] = '^';
+        
+        println(ERROR, scenario, ": Illegal code '", ctoa(code), "' at pos ", itoa(i+1));
+        println(ERROR, location);
+        return false;
     }
+    //println(ctoa(code), "' at pos ", itoa(i+1));
   }
 
   // toggle the clock high then low
   if (clkPin != -1) {
-    //Serial.println("clocking");
+    //println("clocking");
     xDigitalWrite(clkPin, HIGH);
     xDigitalWrite(clkPin, LOW);
   }
 
-  //  Serial.println("Looping");
+  //  println("Looping");
   boolean pass = true;
-  boolean wasTest = false;
-  boolean forcePrint = false;
-  String result = "";
+  char result[SOCKET_PINS+1] = "";
 
   // Reading Outputs from the IC under test
   for (int i = 0; i < pins; i++) {
     Pins pinPair = toGPIOPin(i, pins);
     int gpioL = pinPair.gpioL;
     int gpioH = pinPair.gpioH;
-
+    
     switch (scenario[i]) {
       case 'H': {
-          wasTest = true;
           PinResult r = expectPin('H', gpioH, gpioL);
           if (!r.isOk) pass = false;
-          result += r.result;
+          result[i] = r.result;
           break;
         }
       case 'L': {
-          wasTest = true;
           PinResult r = expectPin('L', gpioH, gpioL);
           if (!r.isOk) pass = false;
-          result += r.result;
+          result[i] = r.result;
           break;
 
         }
       case 'u':
       case 'Z': {
-          wasTest = true;
           PinResult r = expectPin('Z', gpioH, gpioL);
           if (!r.isOk) pass = false;
-          result += r.result;
+          result[i] = r.result;
           break;
         }
 
       case '?':
-        forcePrint = true;
-        result = +xDigitalRead(gpioL) ? "1" : "0";
+        result[i] = pinState(gpioH, gpioL);;
         break;
 
 #ifdef USE_VI_PINS
       case '-':
-        result += '-';
+        result[i] = '-';
         break;
 #endif
 
       default:
         // pin is an input or a don't care so display as underscore
-        result += '_';
+        result[i] = '_';
     }
   }
 
   if (pass) {
-    Serial.print("PASS  : ");
+    println(PASS, testcase);
   } else {
-    Serial.print("FAIL  : ");
+    println(FAIL, testcase);
   }
-  Serial.println(testcase);
-
-  Serial.println("Result: " + result);
+  println(RESULT, result);
 
   return pass;
 }
@@ -217,17 +222,9 @@ boolean test_ic(const char* scenario) {
   test_ic(scenario, "");
 }
 
-/* read from serial io */
-int kbRead() {
-  // send data only when you receive data:
-  while (Serial.available() == 0) {
-  }
-
-  return Serial.read();
-}
 
 void reset() {
-  Serial.println("---");
+  println(INFO, "---");
 
   for (int i = 0; i < SOCKET_PINS; i++) {
     Pins pinPair = toGPIOPin(i, SOCKET_PINS);
@@ -250,12 +247,19 @@ void reset() {
 char* strip(const char * str, char remove) {
   static char stripped[SOCKET_PINS + 1];
   int len = strlen(str);
-
+  
   int to = 0;
   for (int from = 0; from < len; from++) {
     if (str[from] != remove) {
       stripped[to++] = str[from];
     }
+
+    if (to > SOCKET_PINS) {
+      println(ERROR, str);
+      println(ERROR, "can't strip special chars - too long, max allowed is ", itoa(SOCKET_PINS));
+      return NULL;
+    }
+
   }
   stripped[to] = '\0';
   return stripped;
@@ -266,12 +270,23 @@ char* strip(const char * str, char remove) {
 
 char* patchScenario(const char* sin) {
   static char patchedScenario[SOCKET_PINS + 1];
-  if (strlen(sin) > (SOCKET_PINS - 2)) {
-    error(sin);
-    halt("can't patch scenario - too long");
+  int len = strlen(sin);
+  
+  int maxAvailable = (SOCKET_PINS - 2);
+  
+  if (strlen(sin) > maxAvailable) {
+    println(ERROR, sin);
+
+    static char bLen[16+1];
+    itoa(len, bLen, 10);
+
+    println(ERROR, "can't patch scenario - too long, length ", bLen, " but reduced max allowed is ", itoa(maxAvailable));
+    return NULL;
   }
 
-  sprintf(patchedScenario, "-%s-", sin);
+  strcpy(patchedScenario, "-");
+  strcat(patchedScenario, sin);
+  strcat(patchedScenario, "-");
   return patchedScenario;
 }
 
@@ -280,7 +295,7 @@ char* patchScenario(const char* sin) {
 char* fillUnusedPins(const char* test) {
   static char filledUnusedPins[SOCKET_PINS + 1];
 
-//Serial.println("FILLING " + test);
+//println("FILLING " + test);
   int len = strlen(test);
 
   int unusedPins = 2 * unusedSlots(len);
@@ -301,10 +316,10 @@ char* fillUnusedPins(const char* test) {
   strcpy(right, test + (len / 2));
   right[len / 2] = '\0';
 
-  // Serial.println("IN    "+ String(test));
-  // Serial.println("LEFT  "+ String(left));
-  // Serial.println("RIGHT "+ String(right));
-  // Serial.println("FILL  "+ String(fill));
+  // println("IN    "+ String(test));
+  // println("LEFT  "+ String(left));
+  // println("RIGHT "+ String(right));
+  // println("FILL  "+ String(fill));
 
   filledUnusedPins[0] = '\0';
   strcpy(filledUnusedPins , left);
