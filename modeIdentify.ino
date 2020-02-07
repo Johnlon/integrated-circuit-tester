@@ -57,6 +57,8 @@ void identify() {
    
     while (true) {
 
+        INFOLN(F("Testing"));
+
         char *test = strtok(NULL, ":");
         if (test == NULL) {
             INFOLN(F("no more test cases, "), itoa(c), F(" executed"));
