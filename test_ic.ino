@@ -6,6 +6,16 @@ struct PinResult {
   char result;
 };
 
+
+boolean test_ic(const __FlashStringHelper*  raw, const __FlashStringHelper* desc) {
+  char buf1[100+1];
+  char buf2[100+1];
+  strncpy_P(buf1, (char*)raw, 100);
+  strncpy_P(buf2, (char*)desc, 100);
+  
+  return test_ic(buf1, buf2);
+}
+
 /*
    param "scenario" is the test case input and output state definition.
    even a trivial ic will require a sequence of these cases to tests it
@@ -134,6 +144,11 @@ boolean test_ic(const char*  raw, const char* name) {
         xPinMode(gpioH, OUTPUT);
         break;
 
+      case 'S':
+        xPinMode(gpioL, INPUT);
+        xPinMode(gpioH, INPUT);
+        break;
+
       default:
         char location[SOCKET_PINS+1] = "";
         fill(location, SOCKET_PINS, ' ');
@@ -187,6 +202,10 @@ boolean test_ic(const char*  raw, const char* name) {
 
       case '?':
         result[i] = pinState(gpioH, gpioL);;
+        break;
+
+      case 'S':
+        result[i] = xDigitalRead(gpioL)? '1': '0';
         break;
 
 #ifdef USE_VI_PINS
