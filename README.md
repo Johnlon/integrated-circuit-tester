@@ -32,26 +32,34 @@ This device can also be used to test drive a pattern on an LED array or 7 segmen
 Usage
 =======
 
-Test case
+Step1: Test case specification
 ---------
 
 Specify a sequence of test cases using the following pin codes. These codes define the inputs and the expected outputs from the test subject.
+
+Settings
 
    - V=VCC of chip under test (set gpioL to high; set gpioH to high)
    - G=GND of chip under test (set gpioL to low ; set gpioH to low)
    - 1=set input pin of chip under test to logic high
    - 0=set input pin of chip under test to logic low
+   - C=clock pin will be toggled from 0 to 1 to 0 during the test case
+
+Additional settings:
+   - /=a spacer you can use in the input pattern as a separator for example for ease of reading groups of pins or for whatever else you like
+   - u=identifies any unused pins and is added automatically by the program to fill in any pins the test says the chip isn't using - this pin will be tested for high impedance - don't typically need use this code yourself as it is effectively same as 'Z' 
+
+Expectations
    - L=expect logic low output from chip under test
    - H=expect logic high output from chip under test
    - Z=expect high impedance output from chip under test
    - X=dont care - pin gets set with a weak pull down
-   - ?=just read and display the signal at the pin
+   - S=sample and display the signal at the pin, giving either 1 or 0 as the result; floating pins will give unpredictable values according to any stray charge on the pin
+   - ?=read the signal at the pin by applying a pullup/down to confirm it's state as one of 1/0/Z
 
-Also inputs:
-   - /=a spacer you can use in the input pattern as a separator for example for ease of reading groups of pins or for whatever else you like
-   - u=identifies any unused pins and is added automatically by the program to fill in any pins the test says the chip isn't using - this pin will be tested for high impedance - don't use this code yourself as it is effectively same as 'Z'   
+For example the test case "111G/HHHV" would mean... test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pin 8 is Vcc, and we expect pins 5,6,7 to be outputs with logic high.
 
-For example the test case "111G/HHHV" would mean... test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pins 5,6,7 all expect to be outputs with logic high, and pin 8 is Vcc. 
+An interesting test case is to leave the ZIF socket empty, apply a "1" on all test pins, then over a period of seconds  sample the 24 pins using "S" once per second. What you see is a decay of the charge on the pins over a few seconds. See the section below on stray capacitance. See also the 'decay' test case in the software.
 
 Test results
 --------
@@ -64,12 +72,12 @@ The test results use these codes:
    - 1=the test pattern was ? and the value detected was 1
    - 0=the test pattern was ? and the value detected was 0
    - _=identifies the pin as an input so there's no test result on this pin
- Also
-   - -=identifies the top two pins of the socket - in my inital design there's a hardware fault on those so dont put the
-   chip there
+ 
+Also, a hack ...
+   - -=identifies the top two pins of the socket - in my inital design there's a hardware fault on those so I dont put the chip in the top position. This is only relevant if using the original hardware. In the later revision this bug is corrected by using different pins for the first row of the Zif.
 
 
-Then ...
+Step 2: Setup the hardware
 -----
 
 Connect the tester circuit to the computer over the USB port and enable the serial console with the correct baud rate.
@@ -78,10 +86,14 @@ Update the software to choose the chip you intend to test for by modifying the s
 
 Place the chip being tested into the Zif placing the chip against the top of the Zif.
 
+Step 3: Run the test
+-----
+
 Upload the program to the Arduino Nano.
 
 Observe the test results in the serial console. You will see each test case plus the results for that test case.
 
+See section "Test results" above for a decoding of the test output.
 
 What I learned
 ====
@@ -143,7 +155,12 @@ I tested what would happen if I left the Zif socket empty then set the GPIO as o
 I've included the test results for my soldered PCB below.
 
 ```
+Initial test case to charge the pins...
 Testcase :  1111111111111111111111
+
+Then Sample the pins over a period...
+Testcase :  SSSSSSSSSSSSSSSSSSSSSS
+
 Result   : -1111111111111111111111- : 0 secs
 Result   : -1111111111111111111111- : 1 sec
 Result   : -1101111111111111111111- : 2 secs
