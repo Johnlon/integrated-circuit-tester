@@ -8,8 +8,8 @@ void setup() {
   Serial.begin(9600);
   mcp_setup();
   
-  //interactive();
-  decay();
+  interactive();
+  //decay();
   
   //emptySocket();
   //identify();

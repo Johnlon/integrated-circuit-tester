@@ -1,6 +1,34 @@
 #ifndef _IO_H_
 #define _IO_H_
 
+/* NOTE These are macros not functions, so for example the followung will not compile 
+ 
+    if (allok)
+      INFOLN(F("matches "));
+    else
+      INFOLN(F("not "));
+
+ Because the first ';' breaks the if/else.
+
+ Either remove the trailing ';' from the macro 
+ 
+   if (allok) 
+      INFOLN(F("matches "))
+   else 
+      INFOLN(F("not "))
+    
+OR use a block like ...
+ 
+    if (allok) {
+      INFOLN(F("matches "));
+    } else {
+      INFOLN(F("not "));
+    }
+
+ Prefer the former so as not to fool oneself these are functions.
+
+  */
+
 #define PASS   F("PASS   : ")
 #define FAIL   F("FAIL   : ")
 #define ERROR  F("ERROR  : ")
@@ -73,56 +101,54 @@
 
 
 // The interim macro that simply strips the excess and ends up with the required macro
-#define XXX_X(x,A,B,C,D,FUNC, ...)  FUNC  
+#define XXX_X(x,A,B,C,D,E,FUNC, ...)  FUNC  
 
 // The macro that the programmer uses 
-#define INFOLN(...)                    XXX_X(,##__VA_ARGS__,\
-                                          XXX_5(INFO, __VA_ARGS__, "\n"),\
-                                          XXX_4(INFO, __VA_ARGS__, "\n"),\
-                                          XXX_3(INFO, __VA_ARGS__, "\n"),\
-                                          XXX_2(INFO, __VA_ARGS__, "\n"),\
-                                          XXX_1(INFO, __VA_ARGS__, "\n")\
+#define XXX_GEN(CODE, ...)                XXX_X(,##__VA_ARGS__,\
+                                          XXX_6(CODE, __VA_ARGS__, "\n"),\
+                                          XXX_5(CODE, __VA_ARGS__, "\n"),\
+                                          XXX_4(CODE, __VA_ARGS__, "\n"),\
+                                          XXX_3(CODE, __VA_ARGS__, "\n"),\
+                                          XXX_2(CODE, __VA_ARGS__, "\n"),\
+                                          XXX_1(CODE, __VA_ARGS__, "\n")\
                                          ) 
 
-// The macro that the programmer uses 
-#define ERRORLN(...)                    XXX_X(,##__VA_ARGS__,\
-                                          XXX_5(ERROR, __VA_ARGS__, "\n"),\
-                                          XXX_4(ERROR, __VA_ARGS__, "\n"),\
-                                          XXX_3(ERROR, __VA_ARGS__, "\n"),\
-                                          XXX_2(ERROR, __VA_ARGS__, "\n"),\
-                                          XXX_1(ERROR, __VA_ARGS__, "\n")\
-                                         ) 
+#define ERRORLN(...)   XXX_GEN(ERROR, ##__VA_ARGS__)
+#define INFOLN(...)   XXX_GEN(INFO, ##__VA_ARGS__)
+#define HALTLN(...)   {XXX_GEN(INFO, ##__VA_ARGS__); while (1) delay(10000);}
 
 
 // The macro that the programmer uses 
-#define HALTLN(...)                    {XXX_X(,##__VA_ARGS__,\
-                                          XXX_5(HALT, __VA_ARGS__, "\n"),\
-                                          XXX_4(HALT, __VA_ARGS__, "\n"),\
-                                          XXX_3(HALT, __VA_ARGS__, "\n"),\
-                                          XXX_2(HALT, __VA_ARGS__, "\n"),\
-                                          XXX_1(HALT, __VA_ARGS__, "\n")\
-                                         ); while (1) delay(10000);}
-                                          
+//#define INFOLN(...)                    XXX_X(,##__VA_ARGS__,\
+//                                          XXX_6(INFO, __VA_ARGS__, "\n"),\
+//                                          XXX_5(INFO, __VA_ARGS__, "\n"),\
+//                                          XXX_4(INFO, __VA_ARGS__, "\n"),\
+//                                          XXX_3(INFO, __VA_ARGS__, "\n"),\
+//                                          XXX_2(INFO, __VA_ARGS__, "\n"),\
+//                                          XXX_1(INFO, __VA_ARGS__, "\n")\
+//                                         ) 
 
-/* these are macros not functions, so for example the followung will not compile 
- *  
-    if (allok)
-      INFOLN(F("matches "));
-    else
-      INFOLN(F("not "));
+//// The macro that the programmer uses 
+//#define ERRORLN(...)                    XXX_X(,##__VA_ARGS__,\
+//                                          XXX_6(ERROR, __VA_ARGS__, "\n"),\
+//                                          XXX_5(ERROR, __VA_ARGS__, "\n"),\
+//                                          XXX_4(ERROR, __VA_ARGS__, "\n"),\
+//                                          XXX_3(ERROR, __VA_ARGS__, "\n"),\
+//                                          XXX_2(ERROR, __VA_ARGS__, "\n"),\
+//                                          XXX_1(ERROR, __VA_ARGS__, "\n")\
+//                                         ) 
+//
 
- Either remove the trailing ';' from the macro OR use a block like ...
- 
-    if (allok) {
-      INFOLN(F("matches "));
-    } else {
-      INFOLN(F("not "));
-    }
+// The macro that the programmer uses 
+//#define HALTLN(...)                    {XXX_X(,##__VA_ARGS__,\
+//                                          XXX_6(HALT, __VA_ARGS__, "\n"),\
+//                                          XXX_5(HALT, __VA_ARGS__, "\n"),\
+//                                          XXX_4(HALT, __VA_ARGS__, "\n"),\
+//                                          XXX_3(HALT, __VA_ARGS__, "\n"),\
+//                                          XXX_2(HALT, __VA_ARGS__, "\n"),\
+//                                          XXX_1(HALT, __VA_ARGS__, "\n")\
+//                                         ); while (1) delay(10000);}
+//                                          
 
- Prefer the former so as not to fool oneself these are functions.
-
- 
- 
- */
 
 #endif

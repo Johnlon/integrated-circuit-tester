@@ -154,7 +154,9 @@ boolean test_ic(const char*  raw, const char* name) {
         fill(location, SOCKET_PINS, ' ');
         location[i] = '^';
         
-        ERRORLN(scenario, F(": Illegal code '"), ctoa(code), F("' at pos "), itoa(i+1));
+        ERRORLN("error", F(": Illegal code '"), ctoa(code),F("' at pos "),String(i+1));
+        
+ //       ERRORLN(scenario, F(": Illegal code '"), ctoa(code), F("' at pos "), itoa(i+1));
         ERRORLN(location);
         return false;
     }

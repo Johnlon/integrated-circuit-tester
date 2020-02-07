@@ -13,11 +13,12 @@ void interactive() {
   
   char op;
   char lastOp=0;
+  const int MaxLen = 100
   do {
-    static char data[100+1] = "";
-    readline(data, 100);
+    static char data[MaxLen +1] = "";
+    readline(data, MaxLen );
  
-    static char lastdata[100+1] = "";
+    static char lastdata[MaxLen +1] = "";
     op = data[0];
     if (op == '/') {
       op = lastOp;
@@ -27,7 +28,7 @@ void interactive() {
     lastOp = op;
     strcpy(lastdata, data);
     
-    static char tokenise[100+1] = ""; // for tokenisation
+    static char tokenise[MaxLen +1] = ""; // for tokenisation
     strcpy(tokenise, data);
     char *token = strtok(tokenise, ":");
     
@@ -37,7 +38,7 @@ void interactive() {
         break;
       }
       case 't': {
-        static char prevTestcase[100+1] = "";
+        static char prevTestcase[MaxLen+1] = "";
         char* testcase = strtok(NULL, ":");
         if (testcase == NULL) {
           if (prevTestcase[0]==0) {
@@ -56,6 +57,7 @@ void interactive() {
       break;
       
       case '?': {
+        // TODO : use #ifdef here to use -2 only on the old hardware setting
         char buf[SOCKET_PINS-2+1];
         fill(buf, SOCKET_PINS-2+1,'?');
         test_ic(buf);
@@ -64,7 +66,6 @@ void interactive() {
 
     }
     
-  
   } while (op != 'q');
 
   HALTLN(F("quit"));
