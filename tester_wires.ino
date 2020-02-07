@@ -129,7 +129,7 @@ Pins GPIO_PINS[SOCKET_PINS] = {
 struct Pins toGPIOPin(int icPin, int pinCount) {
 
   if (icPin < 0 || icPin >= SOCKET_PINS) {
-    println(HALT, "No test pin configured for IC pin ", itoa(icPin));
+    HALTLN(F("No test pin configured for IC pin "), itoa(icPin));
   }
 
   // find out which Zif socket pin this is
@@ -209,7 +209,7 @@ void xDigitalWrite(uint8_t p, uint8_t d) {
   else if (p < 300)
     mcp2.digitalWrite(p - 200, d);
   else 
-    println(HALT, "Pin number out of range: ", itoa(p));
+    HALTLN(F("Pin number out of range: "), itoa(p));
 }
 uint8_t xDigitalRead(uint8_t p) {
   if (p < 100) {
@@ -219,5 +219,5 @@ uint8_t xDigitalRead(uint8_t p) {
   else if (p < 300)
     return mcp2.digitalRead(p - 200);
   else
-    println(HALT, "Pin number out of range: ", itoa(p));
+    HALTLN(F("Pin number out of range: "), itoa(p));
 }

@@ -36,7 +36,7 @@ boolean test_ic(const char*  raw, const char* name) {
   int pins = strlen(scenario);
 
   if (pins > SOCKET_PINS) {
-      println(ERROR, scenario, ": testcase too long, max allowed len is ", itoa(SOCKET_PINS));
+      ERRORLN(scenario, F(": testcase too long, max allowed len is "), itoa(SOCKET_PINS));
       return false;
   }
 
@@ -50,7 +50,7 @@ boolean test_ic(const char*  raw, const char* name) {
   int clkPin = -1;
 
   if (pins % 2 != 0) {;
-    println(ERROR, scenario, ": Scenario must have even number of pins");
+    ERRORLN(scenario, F(": Scenario must have even number of pins"));
     return false;  
   }
 
@@ -139,8 +139,8 @@ boolean test_ic(const char*  raw, const char* name) {
         fill(location, SOCKET_PINS, ' ');
         location[i] = '^';
         
-        println(ERROR, scenario, ": Illegal code '", ctoa(code), "' at pos ", itoa(i+1));
-        println(ERROR, location);
+        ERRORLN(scenario, F(": Illegal code '"), ctoa(code), F("' at pos "), itoa(i+1));
+        ERRORLN(location);
         return false;
     }
     //println(ctoa(code), "' at pos ", itoa(i+1));
@@ -202,11 +202,11 @@ boolean test_ic(const char*  raw, const char* name) {
   }
 
   if (pass) {
-    println(PASS, testcase);
+    passln(testcase);
   } else {
-    println(FAIL, testcase);
+    failln(testcase);
   }
-  println(RESULT, result);
+  INFOLN(result);
 
   return pass;
 }
@@ -222,9 +222,8 @@ boolean test_ic(const char* scenario) {
   test_ic(scenario, "");
 }
 
-
 void reset() {
-  println(INFO, "---");
+  INFOLN(F("RESET"));
 
   for (int i = 0; i < SOCKET_PINS; i++) {
     Pins pinPair = toGPIOPin(i, SOCKET_PINS);
@@ -255,8 +254,8 @@ char* strip(const char * str, char remove) {
     }
 
     if (to > SOCKET_PINS) {
-      println(ERROR, str);
-      println(ERROR, "can't strip special chars - too long, max allowed is ", itoa(SOCKET_PINS));
+      ERRORLN(str);
+      ERRORLN(F("can't strip special chars - too long, max allowed is "), itoa(SOCKET_PINS));
       return NULL;
     }
 
@@ -275,12 +274,12 @@ char* patchScenario(const char* sin) {
   int maxAvailable = (SOCKET_PINS - 2);
   
   if (strlen(sin) > maxAvailable) {
-    println(ERROR, sin);
+    ERRORLN(sin);
 
     static char bLen[16+1];
     itoa(len, bLen, 10);
 
-    println(ERROR, "can't patch scenario - too long, length ", bLen, " but reduced max allowed is ", itoa(maxAvailable));
+    ERRORLN(F("can't patch scenario - too long, length "), bLen, F(" but reduced max allowed is "), itoa(maxAvailable));
     return NULL;
   }
 

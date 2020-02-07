@@ -18,9 +18,10 @@ for line in databaseTxt:
     if (line.startswith("$")):
         if name != "":
             print("Chip %s" % name)
-            chipsDatabaseIno.write("#define CHIP_%s (chip(\"%s\", \"%s\")" % (name, name, desc))
+            chipsDatabaseIno.write("#define CHIP_%s F(\"%s:%s\" \\\n" % (name, name, desc))
+
             for test in tests:
-                chipsDatabaseIno.write(".scenario(\"%s\")" % test)
+                chipsDatabaseIno.write("\t\":%s::\" \\\n" % test)
             chipsDatabaseIno.write(")\n");
 
             name = ""

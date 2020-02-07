@@ -1,0 +1,71 @@
+#include "tester_wires.h"
+
+void usage() {
+  INFOLN("perform test       >  t:testpattern[:description]");
+  INFOLN("repeat last test   >  t");
+  INFOLN("read all pins      >  ?");      
+  INFOLN("repeat last action >  /");      
+}
+
+void interactive() {
+  INFOLN("INTERACTIVE MODE:");
+  usage();
+  
+  char op;
+  char lastOp=0;
+  do {
+    static char data[100+1] = "";
+    readline(data, 100);
+ 
+    static char lastdata[100+1] = "";
+    op = data[0];
+    if (op == '/') {
+      op = lastOp;
+      strcpy(data, lastdata);
+    } 
+    
+    lastOp = op;
+    strcpy(lastdata, data);
+    
+    static char tokenise[100+1] = ""; // for tokenisation
+    strcpy(tokenise, data);
+    char *token = strtok(tokenise, ":");
+    
+    switch(op) {
+      case 'h': {
+        usage();
+        break;
+      }
+      case 't': {
+        static char prevTestcase[100+1] = "";
+        char* testcase = strtok(NULL, ":");
+        if (testcase == NULL) {
+          if (prevTestcase[0]==0) {
+            ERRORLN(F("missing testcase argument in '"), data, "'");
+            break;
+          } else
+            testcase = prevTestcase;
+        } else {
+          strcpy(prevTestcase, testcase);
+        }
+        char* desc = strtok(NULL, ":");
+        if (desc == NULL) desc=(char*)"";
+        
+        test_ic(testcase, desc);
+      }
+      break;
+      
+      case '?': {
+        char buf[SOCKET_PINS-2+1];
+        fill(buf, SOCKET_PINS-2+1,'?');
+        test_ic(buf);
+      }
+      break;
+
+    }
+    
+  
+  } while (op != 'q');
+
+  HALTLN(F("quit"));
+}

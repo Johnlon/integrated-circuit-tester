@@ -1,0 +1,54 @@
+#include "strings.h"
+
+void emptySocket() {
+  // 11 pin each side socket empty self test - 11 because orig hw has bug on top
+  test_ic(CF("ZZZZZZZZZZZ/ZZZZZZZZZZZ"), CF("Empty socket self test"));
+}
+
+void decay() {
+  INFOLN(CF("Testcase :  1111111111111111111111"));
+  test_ic(CF("1111111111111111111111"));            // capacitance test
+  test_ic(CF("??????????????????????"), CF("0 secs"));  // capacitance test
+  delay(1000);
+  test_ic(CF("??????????????????????"), CF("1 sec"));  // capacitance test
+  delay(1000);
+  test_ic(CF("??????????????????????"), CF("2 secs"));  // capacitance test
+  delay(4000);
+  test_ic(CF("??????????????????????"), CF("6 secs"));  // capacitance test
+  delay(4000);
+  test_ic(CF("??????????????????????"), CF("10 secs"));  // capacitance test
+  delay(5000);
+  test_ic(CF("??????????????????????"), CF("15 secs"));  // capacitance test
+  delay(5000);
+  test_ic(CF("??????????????????????"), CF("20 secs"));  // capacitance test
+  delay(5000);
+  test_ic(CF("??????????????????????"), CF("25 secs"));  // capacitance test
+}
+
+void barLedTestPattern() {
+  int i = 10;
+  while (i-- > 0) {
+    
+    int i = 5;
+    int d1 = 200;
+    while (i-- > 0) {
+      test_ic(CF("11111111111/00000000000"), CF("on"));
+      delay(d1);
+      test_ic(CF("00000000000/00000000000"), CF("of"));
+      delay(d1);
+    }
+    
+    int j = 16;
+    int d2 = 20;
+    while (j-->0) {
+      test_ic(CF("10001000100/00000000000"), CF("walk"));
+      delay(d2);
+      test_ic(CF("01000100010/00000000000"), CF("walk"));
+      delay(d2);
+      test_ic(CF("00100010001/00000000000"), CF("walk"));
+      delay(d2);
+      test_ic(CF("00010001000/00000000000"), CF("walk"));
+      delay(d2);
+    }
+  }
+}
