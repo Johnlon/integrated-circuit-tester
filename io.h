@@ -35,6 +35,8 @@ OR use a block like ...
 #define INFO   F("INFO   : ")
 #define RESULT F("RESULT : ")
 #define HALT   F("HALT   : ")
+#define MATCH  F("MATCH  : ")
+
 //
 //void INFOLN(const char * s1, const __FlashStringHelper* s2);
 //void INFOLN(const char * s1, const char * s2="", const char * s3="", const char * s4="", const char * s5="");
@@ -116,39 +118,7 @@ OR use a block like ...
 #define ERRORLN(...)   XXX_GEN(ERROR, ##__VA_ARGS__)
 #define INFOLN(...)   XXX_GEN(INFO, ##__VA_ARGS__)
 #define HALTLN(...)   {XXX_GEN(INFO, ##__VA_ARGS__); while (1) delay(10000);}
-
-
-// The macro that the programmer uses 
-//#define INFOLN(...)                    XXX_X(,##__VA_ARGS__,\
-//                                          XXX_6(INFO, __VA_ARGS__, "\n"),\
-//                                          XXX_5(INFO, __VA_ARGS__, "\n"),\
-//                                          XXX_4(INFO, __VA_ARGS__, "\n"),\
-//                                          XXX_3(INFO, __VA_ARGS__, "\n"),\
-//                                          XXX_2(INFO, __VA_ARGS__, "\n"),\
-//                                          XXX_1(INFO, __VA_ARGS__, "\n")\
-//                                         ) 
-
-//// The macro that the programmer uses 
-//#define ERRORLN(...)                    XXX_X(,##__VA_ARGS__,\
-//                                          XXX_6(ERROR, __VA_ARGS__, "\n"),\
-//                                          XXX_5(ERROR, __VA_ARGS__, "\n"),\
-//                                          XXX_4(ERROR, __VA_ARGS__, "\n"),\
-//                                          XXX_3(ERROR, __VA_ARGS__, "\n"),\
-//                                          XXX_2(ERROR, __VA_ARGS__, "\n"),\
-//                                          XXX_1(ERROR, __VA_ARGS__, "\n")\
-//                                         ) 
-//
-
-// The macro that the programmer uses 
-//#define HALTLN(...)                    {XXX_X(,##__VA_ARGS__,\
-//                                          XXX_6(HALT, __VA_ARGS__, "\n"),\
-//                                          XXX_5(HALT, __VA_ARGS__, "\n"),\
-//                                          XXX_4(HALT, __VA_ARGS__, "\n"),\
-//                                          XXX_3(HALT, __VA_ARGS__, "\n"),\
-//                                          XXX_2(HALT, __VA_ARGS__, "\n"),\
-//                                          XXX_1(HALT, __VA_ARGS__, "\n")\
-//                                         ); while (1) delay(10000);}
-//                                          
+#define MATCHLN(...)   {XXX_GEN(MATCH, ##__VA_ARGS__); while (1) delay(10000);}
 
 
 #endif

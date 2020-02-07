@@ -63,9 +63,9 @@ void identify() {
     }
 
     if (allok) 
-      INFOLN(F("matches "), name)
+      MATCHLN(F("matches: "), name)
     else 
-      INFOLN(F("not "), name)
+      INFOLN(F("no match: "), name)
   }
 
   reset();
