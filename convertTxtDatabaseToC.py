@@ -18,11 +18,11 @@ for line in databaseTxt:
     if (line.startswith("$")):
         if name != "":
             print("Chip %s" % name)
-            chipsDatabaseIno.write("#define CHIP_%s F(\"%s:%s\" \\\n" % (name, name, desc))
+            chipsDatabaseIno.write("const char CHIP_%s[] PROGMEM = (\"%s:%s\" \\\n" % (name, name, desc))
 
             for test in tests:
                 chipsDatabaseIno.write("\t\":%s::\" \\\n" % test)
-            chipsDatabaseIno.write(")\n");
+            chipsDatabaseIno.write(");\n");
 
             name = ""
             desc = ""

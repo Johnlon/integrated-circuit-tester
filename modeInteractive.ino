@@ -13,7 +13,7 @@ void interactive() {
   
   char op;
   char lastOp=0;
-  const int MaxLen = 100
+  const int MaxLen = 100;
   do {
     static char data[MaxLen +1] = "";
     readline(data, MaxLen );

@@ -46,7 +46,7 @@ boolean test_ic(const char*  raw, const char* name) {
   int pins = strlen(scenario);
 
   if (pins > SOCKET_PINS) {
-      ERRORLN(scenario, F(": testcase too long, max allowed len is "), itoa(SOCKET_PINS));
+      ERRORLN(scenario, F(" : testcase too long, max allowed len is "), SOCKET_PINS);
       return false;
   }
 
