@@ -213,14 +213,14 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 
 **GPIO-L and GPIO-H operate as a pair in one of four modes:**
 
-- Driving an input: Where the test subject's pin is a expected to be an input to that device, then GPIO-L is set to H or L as appropriate to drive the IC's input logic level; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
+- **Power supply to chip being tested**: Where the test subject’s pin is expected to be either GND or VCC, then GPIO-L is set to a L or H output respectively; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
+
+- **Driving an input**: Where the test subject's pin is expected to be an input to that device, then GPIO-L is set to H or L as appropriate to drive the IC's input logic level; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
  
-- Testing for 1/0 output: Where the test subject's pin is expected to be bi-state output, then GPIO-L is configured as an input and is used to sense the state of the test IC's output pin; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
+- **Testing an output**: GPIO-L is set as an input to sense the test pin, and gpipH is set as an output. Two tests are then performed; firstly GPIP-H is set to High to apply a weak pull up and GPIO-L reads the result, then GPIO-H is set to Low and GPIO-L reads the state again. During this test the effect of GPIO-H is a weak pull up then a weak pull down respectively. If this pull-up & down isaccurately sensed by GPIO-L then this indicates that the test pin must be in a high impedance state. If the pin had not been high-Z and had been asserting either H or L then this strong H/L output signal of the test chip would have swamped the weak pull up/down of GPIO-H and GPIO-L would have seen only the strong signal asserted by the tested chip. Using this test approach the integrated circuit tester is able to differentiate between a test output that is asserting a High or Low output from a pin that is High-Z or disconnected. 
+
+- **Sample mode**: Both GPIO-L and GPIO-H are configured as inputs and the state of the test pin is read via GPIO-L. In this mode no pull up or pull down is applied by GPIO-H, so instead we simply see the result of whatever voltage happens to be present on the test pin. If the test socket isn't populated then this voltage will be stray capacitance or perhaps electrical noise so the signal is unreliable if there is nothing attached. This mode isn't particularly useful but it is used by an interesting experiment around stray capacitance (see the *decay()* test in the software); that capacitance experiment is described above in the "*What I learned*" section.  
   
-- Testing for high-Z output: Where the test subject's pin is expected to be in a high-impedance output state, a tristate outputs with output enabe disabled, then this high-Z state can be verified by using GPIO-L as a sense input and simultaneously using GPIP-H to apply a weak pull up then a pull down signal to the test subject's pin. If this pull-up & down is sensed by GPIO-L then the test pin must be in a high impedance state. If the pin had not been high-Z and had been asserting either H or L then this strong H/L signal would have swamped  the weak pull up/down of GPIP-H and GPIO-L could not have detected the pull affect of  GPIO-H.
-
-- Power supply to chip being tested: Where the test subject’s pin is expected to be either GND or VCC, then GPIO-L is set to a L or  H output respectively; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
-
 Demo
 ----
 
