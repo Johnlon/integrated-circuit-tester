@@ -203,8 +203,6 @@ This circuit is designed to be able to power a low power logic device and also t
 
 The circuit is designed to verify regular H and L outputs but is also capable of verifying that a pin is in a high impedance "high-Z" state. 
 
-:star: [Click here to use interactive demo](http://tinyurl.com/usvxqwr) 
-
 Two GPIO pins are dedicatd to test each pin of the chip under test. These two GPIO pins are each configured with an inline resistor and the rest of the dicsussion will refer to them as  
 - "GPIO-L" - the GPIO pin with a low low in-line resistor 
 - "GPIO-H" - the GPIO pin with a high value in-line resistor
@@ -223,6 +221,12 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 
 - Power supply to chip being tested: Where the test subject’s pin is expected to be either GND or VCC, then GPIO-L is set to a L or  H output respectively; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
 
+Demo
+----
+
+:star: [Click here to use interactive demo](http://tinyurl.com/usvxqwr) 
+
+[![circuitjs-demo.png](circuitjs-demo.png)](http://tinyurl.com/usvxqwr)
 
 Choice of resistor values
 -------
