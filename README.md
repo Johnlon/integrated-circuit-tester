@@ -211,15 +211,35 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 
 ![pin-config.png](pin-config.png)
 
-**GPIO-L and GPIO-H operate as a pair in one of four modes:**
+**GPIO-L and GPIO-H operate as a pair in one of three modes:**
 
-- **Power supply to chip being tested**: Where the test subject’s pin is expected to be either GND or VCC, then GPIO-L is set to a L or H output respectively; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
-
-- **Driving an input**: Where the test subject's pin is expected to be an input to that device, then GPIO-L is set to H or L as appropriate to drive the IC's input logic level; GPIO-H is not relevant in this use case and it is configured as a high impedance state.
+- **Driving an input** or **Power supply input to chip being tested**
+  
+  Where the test subject’s pin is expected to be either a logic input, or  GND/VCC, then GPIO-L is set to a L or H output. Set H for Vcc or for a logic 1 input and set L for GND or a logic 0 input. 
+  
+  GPIO-H is not relevant in this use case and it is configured as a high  impedance (input) state.
  
-- **Testing an output**: GPIO-L is set as an input to sense the test pin, and gpipH is set as an output. Two tests are then performed; firstly GPIP-H is set to High to apply a weak pull up and GPIO-L reads the result, then GPIO-H is set to Low and GPIO-L reads the state again. During this test the effect of GPIO-H is a weak pull up then a weak pull down respectively. If this pull-up & down isaccurately sensed by GPIO-L then this indicates that the test pin must be in a high impedance state. If the pin had not been high-Z and had been asserting either H or L then this strong H/L output signal of the test chip would have swamped the weak pull up/down of GPIO-H and GPIO-L would have seen only the strong signal asserted by the tested chip. Using this test approach the integrated circuit tester is able to differentiate between a test output that is asserting a High or Low output from a pin that is High-Z or disconnected. 
+- **Testing an output**
+  
+  This test can distinguish a logic 1 from a logic 0 from a high-Z
 
-- **Sample mode**: Both GPIO-L and GPIO-H are configured as inputs and the state of the test pin is read via GPIO-L. In this mode no pull up or pull down is applied by GPIO-H, so instead we simply see the result of whatever voltage happens to be present on the test pin. If the test socket isn't populated then this voltage will be stray capacitance or perhaps electrical noise so the signal is unreliable if there is nothing attached. This mode isn't particularly useful but it is used by an interesting experiment around stray capacitance (see the *decay()* test in the software); that capacitance experiment is described above in the "*What I learned*" section.  
+  GPIO-L is set as an input to sense the test pin, and gpipH is set as an output. 
+
+  This test relies on the fact that if the test chip's output is asserting a 1 or 0 then this signal would swamp a small pull up or pull down applied if it were applied to the same wire. This explains the purpose of the GPIO-H line which has a high value resistance. GPIO-H can be used to attempt to pull the wire up or down during the tests. If the circuit is sucessfully able to pull the pin both up and down then this can only be possble if the pin is in a high Z or disconnected state. 
+
+  Two tests are then performed
+  - GPIO-H is set to High to apply a weak pull-up to the test chips pin and GPIO-L reads the result
+  - GPIO-H is set to Low  to apply a weak pull-down to the test chips pin and again GPIO-L reads the result 
+  
+  If both the pull-up & pull-down events are sensed by GPIO-L then this indicates that the test pin is in a high impedance state. If however we only sense a L during both tests then the test pin must be asserting a 0, and if only a H is sensed then the test pin must be asserting a 1.
+
+  :white_check_mark: It ought also be possible to detect an open collector output in a similar manner. When the open collector output is asserting a 0 then the pull-up/down test will fail and will always sense a L, but when the open collector output is logic 1 then it's output will be floating and the pull up/down check ought to be sucessful.
+
+- **Sample mode**
+
+   Both GPIO-L and GPIO-H are configured as inputs and the state of the test pin is read via GPIO-L. GPIO-H is not relevant in this use case. 
+   
+   In this mode no pull up or pull down is applied by GPIO-H, so instead we simply see the result of whatever voltage happens to be present on the test pin. If the test socket isn't populated then this voltage will be stray capacitance or perhaps electrical noise so the signal is unreliable if there is nothing attached. This mode isn't particularly useful but it is used by an interesting experiment around stray capacitance (see the *decay()* test in the software); that capacitance experiment is described above in the "*What I learned*" section.  
   
 Demo
 ----
