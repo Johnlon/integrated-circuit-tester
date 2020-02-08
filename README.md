@@ -82,18 +82,26 @@ Step 2: Setup the hardware
 
 Connect the tester circuit to the computer over the USB port and enable the serial console with the correct baud rate.
 
-Update the software to choose the chip you intend to test for by modifying the software - TBD.
+Place the chip being tested into the ZIF, placing the chip against the top of the ZIF.
 
-Place the chip being tested into the Zif placing the chip against the top of the Zif.
+:x: If you are using the original revision of the board, then the top row of pins must be avoided. Just sit the chip in row 2 of the ZIF instead. This problem is now corrected in EasyEda.
 
 Step 3: Run the test
 -----
 
+Edit the software to run whatever mode you are after. It's defined in the setup function. 
+
+Options are:
+
+- Identification - where the device runs through a database of test cases to identify the chip
+- Interactive - where tests can be entered on the serial console 
+- Plus there are a couple of modes in miscTests.ino to do with testing LED arrays and also the interesting capacitance decay test mentioned elsewhere in this documentation. 
+
 Upload the program to the Arduino Nano.
 
-Observe the test results in the serial console. You will see each test case plus the results for that test case.
+Observe the test results in the serial console. 
 
-See section "Test results" above for a decoding of the test output.
+See the section "Test results" above for a decoding of the test output.
 
 What I learned
 ====
@@ -188,9 +196,9 @@ What I see is that reading the pins echo's back the logic levels that were writt
 
 Running this same test over and over I found that the  pattern of decay to 0 was somewhat similar on each test run. I guess this is a consequence of each path having it's own unique RC.
 
-Initial, I couldn't see how the numbers add up to be an RC effect. I assumed this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the 100MOhm inputs. But, if the combined capacitance of the pin (*1), plus traces on the PCB, plus the Zif socket is aroung 20pF and the input is 100MOhm this still doesn't produce a significant RC value; it's a tiny 0.002 seconds. 
+Initial, I couldn't see how the numbers add up to be an RC effect. I assumed this effect is explained by stray capacitance on the PCB traces and the Zif socket coupled with a slow discharge via the 100M&Omega; inputs. But, if the combined capacitance of the pin (*1), plus traces on the PCB, plus the Zif socket is aroung 20pF and the input is 100M&Omega; this still doesn't produce a significant RC value; it's a tiny 0.002 seconds. 
 
-I posted this conundrum onto [this project's Hackaday.IO log](https://hackaday.io/project/169707-integrated-circuit-tester-tristate-too) and Ken Yap commented that CMOS inputs can be up to 10^12 Ohms and when I put that number into the equation then I ended up with an RC value of 20 seconds.
+I posted this conundrum onto [this project's Hackaday.IO log](https://hackaday.io/project/169707-integrated-circuit-tester-tristate-too) and Ken Yap commented that CMOS inputs can be up to 10^12 &Omega; and when I put that number into the equation then I ended up with an RC value of 20 seconds.
 
 This "memory" effect really confused me for ages and for quite a while I thought I had a hardware bug or had damaged one of the devices. 
 
@@ -280,9 +288,9 @@ High Res : 10k
 
 NB: The high level voltage on the Zif socket is approx 4.8v.
 
-NB. This whole thing is probably over engineered and/or under engineered, but it does work as I built it. I suspect that cheap IC identification devices on eBay probably don't bother with series protection resistors at all and almost certainly can't detect tri-state devices - but I could be wrong. Leaving out either of these features would be a big simplification but I wasn't happy with the omitting short circuit current limiting resistors, which seem advisable when running the device in circuit identification mode where the software has no idea what's in the socket.  
+NB. This whole thing is probably over engineered and/or under engineered, but I've built it and it works. I suspect that some cheap IC identification devices on eBay probably don't bother with series protection resistors at all and almost certainly can't detect tri-state devices - but I could be wrong. Leaving out either of these features would be a big simplification for me but I wasn't happy with the omitting short circuit current limiting resistors, which seem advisable when running the device in circuit identification mode where the software has no idea what's in the socket.  
 
-NB. Worst case CMOS output resistance about 50Ohms http://www.ti.com/lit/an/scla007a/scla007a.pdf
+NB. Worst case CMOS output resistance about 50 &Omega; and will typically be a lot less - http://www.ti.com/lit/an/scla007a/scla007a.pdf
 
 Software
 ========
