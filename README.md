@@ -224,9 +224,9 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 Demo
 ----
 
-:star: [Click here to use interactive demo](http://tinyurl.com/usvxqwr) 
+:star: [Click here to use interactive demo](http://tinyurl.com/skrhf8r) 
 
-[![circuitjs-demo.png](circuitjs-demo.png)](http://tinyurl.com/usvxqwr)
+[![circuitjs-demo.png](circuitjs-demo.png)](http://tinyurl.com/skrhf8r)
 
 Choice of resistor values
 -------
