@@ -32,7 +32,7 @@ This device can also be used to test drive a pattern on an LED array or 7 segmen
 Usage
 =======
 
-Step1: Test case specification
+Step1: Understand the test case specification
 ---------
 
 Specify a sequence of test cases using the following pin codes. These codes define the inputs and the expected outputs from the test subject.
