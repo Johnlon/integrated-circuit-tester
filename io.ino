@@ -1,49 +1,6 @@
 #include "io.h"
 
 
-void passln(const char* s1) {
-  PRINT3(PASS, s1, "\n");
-}
-
-void failln(const char* s1) {
-  PRINT3(FAIL, s1, "\n");
-}
-
-//void print(const __FlashStringHelper* s1, const char * s2, const char * s3, const char * s4, const char * s5, const char * s6, const char * s7) {
-//  Serial.print(s1);
-//  Serial.print(s2); 
-//  Serial.print(s3); 
-//  Serial.print(s4); 
-//  Serial.print(s5); 
-//  Serial.print(s6); 
-//  Serial.print(s7); 
-//}
-//
-//void println(const __FlashStringHelper* s1, const char * s2, const char * s3, const char * s4, const char * s5, const char * s6, const char * s7) {
-//  PRINT7(s1,s2, s3, s4, s5, s6, s7);
-//  Serial.println(""); 
-//}
-//
-//void halt(const char* m1, const char* m2, const char* m3, const char* m4, const char* m5) {
-//    println(HALT, m1, m2, m3, m4, m5);
-//    while (1) {
-//        delay(100000);
-//    }
-//}
-//
-//void errorln(const char* m1, const char* m2, const char* m3, const char* m4, const char* m5) {
-//    println(ERROR, m1, m2, m3, m4, m5);
-//}
-//
-//void INFOLN(const char* m1, const char* m2, const char* m3, const char* m4, const char* m5) {
-//    println(INFO, m1, m2, m3, m4, m5);
-//}
-//
-//void INFOLN(const char* m1, const __FlashStringHelper* m2) {
-//  Serial.println((const char* const )m2);
-//    println(INFO, m1, (const char*)m2);
-//}
-
 /* truncates line if exceeds MAX_LEN */
 char * readline() {
   static const int MAX_LEN = 100;

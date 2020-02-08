@@ -223,9 +223,9 @@ boolean test_ic(const char*  raw, const char* name) {
   }
 
   if (pass) {
-    passln(testcase);
+    PASSLN(testcase);
   } else {
-    failln(testcase);
+    FAILLN(testcase);
   }
   INFOLN(result);
 
@@ -244,7 +244,7 @@ boolean test_ic(const char* scenario) {
 }
 
 void reset() {
-  INFOLN(F("RESET"));
+  //INFOLN(F("RESET"));
 
   for (int i = 0; i < SOCKET_PINS; i++) {
     Pins pinPair = toGPIOPin(i, SOCKET_PINS);

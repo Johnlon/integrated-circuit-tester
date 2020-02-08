@@ -1,0 +1,2 @@
+Open the circuitjs file principals-demo-circuit.falsted-circuitjs.txt in https://www.falstad.com/circuit/circuitjs.html
+The latest version can also be reached by this link http://tinyurl.com/usvxqwr

@@ -203,6 +203,8 @@ This circuit is designed to be able to power a low power logic device and also t
 
 The circuit is designed to verify regular H and L outputs but is also capable of verifying that a pin is in a high impedance "high-Z" state. 
 
+:star: [Click here to use interactive demo](http://tinyurl.com/usvxqwr) 
+
 Two GPIO pins are dedicatd to test each pin of the chip under test. These two GPIO pins are each configured with an inline resistor and the rest of the dicsussion will refer to them as  
 - "GPIO-L" - the GPIO pin with a low low in-line resistor 
 - "GPIO-H" - the GPIO pin with a high value in-line resistor
@@ -255,6 +257,8 @@ High Res : 10k
 NB: The high level voltage on the Zif socket is approx 4.8v.
 
 NB. This whole thing is probably over engineered and/or under engineered, but it does work as I built it. I suspect that cheap IC identification devices on eBay probably don't bother with series protection resistors at all and almost certainly can't detect tri-state devices - but I could be wrong. Leaving out either of these features would be a big simplification but I wasn't happy with the omitting short circuit current limiting resistors, which seem advisable when running the device in circuit identification mode where the software has no idea what's in the socket.  
+
+NB. Worst case CMOS output resistance about 50Ohms http://www.ti.com/lit/an/scla007a/scla007a.pdf
 
 Software
 ========

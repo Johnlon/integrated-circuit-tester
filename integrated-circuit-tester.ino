@@ -9,11 +9,11 @@ void setup() {
 
   mcp_setup();
   
-  //interactive();
+  interactive();
   //decay();
   
   //emptySocket();
-  identify();
+  //identify();
   //barLedTestPattern();
 
   reset();

@@ -21,7 +21,7 @@ for line in databaseTxt:
             chipsDatabaseIno.write("const char CHIP_%s[] PROGMEM = (\"%s:%s\" \\\n" % (name, name, desc))
 
             for test in tests:
-                chipsDatabaseIno.write("\t\":%s::\" \\\n" % test)
+                chipsDatabaseIno.write("\t\":%s:\" \\\n" % test)
             chipsDatabaseIno.write(");\n");
 
             name = ""

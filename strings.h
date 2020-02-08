@@ -4,6 +4,4 @@
 
 #include <avr/pgmspace.h>
 
-//#define CF(X) ((char*)(F(X)))
-
 #endif

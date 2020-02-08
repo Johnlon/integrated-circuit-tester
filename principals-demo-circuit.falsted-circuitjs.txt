@@ -1,0 +1,63 @@
+$ 0 0.0000049999999999999996 10.20027730826997 50 5 43
+r 80 144 192 144 0 150
+s 608 176 672 176 0 0 false
+L 672 176 736 176 0 0 false 5 0
+x 378 141 492 144 4 24 Socket\sPin
+x -53 149 5 152 4 24 gpioL
+x -109 47 36 50 4 24 GPIO\spin\spair
+b 576 64 777 243 0
+w 608 176 528 176 0
+w 240 176 336 176 0
+b 247 3 528 248 0
+368 0 112 -80 112 0 5
+403 -160 80 -112 192 0 10_64_0_4098_1.25_0.1_0_2_10_3
+x 265 339 487 342 4 12 Simulate\snoise/random\svalues\son\stest\spin.
+x 596 100 756 103 4 24 Tri-state\soutput
+L 0 176 -80 176 0 0 false 5 0
+x 592 199 685 202 4 12 "Hi-Z"\swhen\sopen
+x 596 128 726 131 4 24 being\stested
+x 265 371 517 374 4 12 or\schip's\soutput\spin\sis\sfloating\sin\sa\s"high-Z"\sstate
+b -112 80 76 202 0
+s 416 176 448 176 0 1 false
+x 401 208 471 211 4 12 Chip\sinserted
+x 405 221 471 224 4 12 when\sclosed
+w 400 176 416 176 0
+w 448 176 496 176 0
+x 266 355 491 358 4 12 This\sbecomes\srelevant\swhen\sZIF\sis\sempty\s
+b 394 153 474 190 0
+w 400 176 336 176 0
+x 267 44 497 47 4 24 ZIF\ssocket\sand\straces
+S 80 144 32 144 0 1 false 0 2
+w 32 128 0 112 0
+w 32 160 0 176 0
+w 32 304 0 320 0
+w 32 272 0 256 0
+S 80 288 32 288 0 1 false 0 2
+b -112 224 76 346 0
+L 0 320 -80 320 0 0 false 5 0
+368 0 256 -80 256 0 5
+x -53 293 9 296 4 24 gpioH
+r 80 288 192 288 0 10000
+w 192 176 192 144 0
+w 192 176 192 288 0
+w 240 176 192 176 0
+b -179 5 105 383 0
+x 31 119 52 122 4 10 input
+x 28 176 55 179 4 10 output
+x 30 318 57 321 4 10 output
+x 31 262 52 265 4 10 input
+w 336 208 336 176 0
+r 368 304 432 304 0 1000000000
+R 448 304 480 304 0 6 40 5 0 0 0.5
+w 448 304 432 304 0
+w 368 304 336 304 0
+w 336 304 336 240 0
+x 274 76 447 79 4 12 Has\sstray\scapacitance\sand\snoise
+x 274 92 449 95 4 12 that's\srelevat\swhen\snot\spopulated
+w 336 240 336 208 0
+b 247 271 532 395 0
+x 559 319 809 322 4 14 Suggestion:\sLeave\sthe\sZIF\ssocket\sempty
+x 560 337 794 340 4 14 and\srun\sthe\s"decay()"\stest\sin\sthe\scode\s
+x 560 356 787 359 4 14 to\ssee\sthe\seffect\sof\sstray\scapacitance
+w 528 176 496 176 0
+o 9 64 3 4098 5 0.1 0 1
