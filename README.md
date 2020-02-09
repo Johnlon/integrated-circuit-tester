@@ -204,7 +204,7 @@ This "memory" effect really confused me for ages and for quite a while I thought
 
 (*1 "Zif sockets can add 8pF" see ["EMC at Component and PCB Level" 5.1.5 Component Sockets](https://books.google.co.uk/books?id=__zOzV7Kd-MC&pg=PA106&lpg=PA106&dq=%22zif%22+socket+%22capacitance%22&source=bl&ots=un8Jfz-B4g&sig=ACfU3U26ntpdDMNau6HHNYnmF4ISwuBBbg&hl=en&sa=X&ved=2ahUKEwjzpvT636znAhXUi1wKHYkKDSkQ6AEwBHoECDAQAQ#v=onepage&q=%22zif%22%20socket%20%22capacitance%22&f=false))
 
-Principal of operation 
+Principle of operation 
 =====
 
 This circuit is designed to be able to power a low power logic device and also to determine if the device is healthy. It does this by applying a sequence of known inputs and verifying the expected outputs.
