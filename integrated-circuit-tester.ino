@@ -10,10 +10,10 @@ void setup() {
   mcp_setup();
   
   interactive();
-  //decay();
-  
+  //identify(true);
+ 
+  //decay(); 
   //emptySocket();
-  //identify();
   //barLedTestPattern();
 
   reset();

@@ -77,9 +77,9 @@ struct Pins GPIO_PINS[SOCKET_PINS] = {
   
   // top right  - ie Vcc on 74 series
  };
-#endif
 
-#ifndef USE_VI_PINS
+#else
+
 // Map of IC test pins to pin pairs on the arduino down left side of the chip under test (or the zif socket) and up the right side
 // first pin is pin 1 at top left of chip.
 // Warning This pin setup uses pin D13 as part of tp13 (12th row). However, there are multiple references that

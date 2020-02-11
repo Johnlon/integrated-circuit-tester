@@ -48,29 +48,29 @@ OR use a block like ...
 //void println(const __FlashStringHelper* s1, const char * s2="", const char * s3="", const char * s4="", const char * s5="", const char * s6="", const char * s7="");
 
 #define PRINT1(s1) \
-  {Serial.print(s1);}
+  {Serial.print(s1); Serial.flush();}
   
 #define PRINT2(s1,s2) \
   {Serial.print(s1);\
-  Serial.print(s2);}
+  Serial.print(s2); Serial.flush();}
   
 #define PRINT3(s1,s2,s3) \
   {Serial.print(s1); \
   Serial.print(s2); \
-  Serial.print(s3);}
+  Serial.print(s3); Serial.flush();}
   
 #define PRINT4(s1,s2,s3,s4) \
   {Serial.print(s1); \
   Serial.print(s2); \
   Serial.print(s3); \
-  Serial.print(s4);}
+  Serial.print(s4); Serial.flush();}
   
 #define PRINT5(s1,s2,s3,s4,s5) \
   {Serial.print(s1); \
   Serial.print(s2); \
   Serial.print(s3); \
   Serial.print(s4); \
-  Serial.print(s5);}
+  Serial.print(s5); Serial.flush();}
 
 #define PRINT6(s1,s2,s3,s4,s5,s6) \
   {Serial.print(s1); \
@@ -78,7 +78,7 @@ OR use a block like ...
   Serial.print(s3); \
   Serial.print(s4); \
   Serial.print(s5); \
-  Serial.print(s6);}
+  Serial.print(s6); Serial.flush();}
 
 #define PRINT7(s1,s2,s3,s4,s5,s6,s7) \
   {Serial.print(s1); \
@@ -87,7 +87,7 @@ OR use a block like ...
   Serial.print(s4); \
   Serial.print(s5); \
   Serial.print(s6); \
-  Serial.print(s7);}
+  Serial.print(s7); Serial.flush();}
 
 
 

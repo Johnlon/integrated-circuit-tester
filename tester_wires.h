@@ -1,7 +1,8 @@
 #ifndef TESTER_WIRES
 #define TESTER_WIRES
 
-// only for use working with my bad V1 PCB where A6/A7 doesn't work
+// Only for use when working with my original V1 PCB where A6/A7 we connected to the first ZIF row - row 1 doesn't work in that case.
+// Comment out otherwise
 #define USE_VI_PINS
 
 struct Pins {
@@ -10,7 +11,7 @@ struct Pins {
 };
 
 
-// bottom 4 pins of 28 holes are not connected
+// The PCB has 28 holes but the bottom 4 pins are not connected and are just drill holes.
 #define SOCKET_PINS 24
 
 #endif

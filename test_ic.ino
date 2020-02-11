@@ -16,6 +16,9 @@ boolean test_ic(const __FlashStringHelper*  raw, const __FlashStringHelper* desc
   return test_ic(buf1, buf2);
 }
 
+boolean test_ic(const char*  raw, const char* name) {
+  return test_ic(raw, name, true);
+}
 /*
    param "scenario" is the test case input and output state definition.
    even a trivial ic will require a sequence of these cases to tests it
@@ -28,7 +31,7 @@ boolean test_ic(const __FlashStringHelper*  raw, const __FlashStringHelper* desc
 
    returns true if test passes, false otherwise
 */
-boolean test_ic(const char*  raw, const char* name) {
+boolean test_ic(const char*  raw, const char* name, bool verbose) {
 
   char * scenario = strip(raw, '/');
   if (scenario == NULL) return false;
@@ -154,9 +157,7 @@ boolean test_ic(const char*  raw, const char* name) {
         fill(location, SOCKET_PINS, ' ');
         location[i] = '^';
         
-        ERRORLN("error", F(": Illegal code '"), ctoa(code),F("' at pos "),String(i+1));
-        
- //       ERRORLN(scenario, F(": Illegal code '"), ctoa(code), F("' at pos "), itoa(i+1));
+        ERRORLN(scenario, F(": Illegal code '"), code, F("' at pos "), (i+1));
         ERRORLN(location);
         return false;
     }
@@ -222,13 +223,14 @@ boolean test_ic(const char*  raw, const char* name) {
     }
   }
 
-  if (pass) {
-    PASSLN(testcase);
-  } else {
-    FAILLN(testcase);
+  if (verbose) {
+    if (pass) {
+      PASSLN(testcase);
+    } else {
+      FAILLN(testcase);
+    }
+    INFOLN(result);
   }
-  INFOLN(result);
-
   return pass;
 }
 
@@ -288,6 +290,7 @@ char* strip(const char * str, char remove) {
 // hardware design error - A6/A7 dont work as outputs so shift the scenario down
 // one set of pins. do not use the top row in the zip socket
 
+#ifdef USE_VI_PINS  
 char* patchScenario(const char* sin) {
   static char patchedScenario[SOCKET_PINS + 1];
   int len = strlen(sin);
@@ -300,7 +303,7 @@ char* patchScenario(const char* sin) {
     static char bLen[16+1];
     itoa(len, bLen, 10);
 
-    ERRORLN(F("can't patch scenario - too long, length "), bLen, F(" but reduced max allowed is "), itoa(maxAvailable));
+    ERRORLN(F("can't patch scenario - too long, length is "), bLen, F(" but only "), itoa(maxAvailable), " is allowed due to h/w bug");
     return NULL;
   }
 
@@ -309,7 +312,7 @@ char* patchScenario(const char* sin) {
   strcat(patchedScenario, "-");
   return patchedScenario;
 }
-
+#endif  
 
 
 char* fillUnusedPins(const char* test) {

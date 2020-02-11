@@ -3,7 +3,7 @@ Integrated Circuit Tester
 
 This software accompanies a hardware design for an integrated circuit tester.
 
-Hardware design and pcbcan be found on EasyEda : https://easyeda.com/john.lonergan.sharing/integrated-circuit-tester
+Hardware design and PCB can be found on EasyEda : https://easyeda.com/john.lonergan.sharing/integrated-circuit-tester
 
 **Unusual features of this implementation**:
 - verifies correct functioning of tristate outputs
@@ -211,23 +211,33 @@ This circuit is designed to be able to power a low power logic device and also t
 
 The circuit is designed to verify regular H and L outputs but is also capable of verifying that a pin is in a high impedance "high-Z" state. 
 
-Two GPIO pins are dedicatd to test each pin of the chip under test. These two GPIO pins are each configured with an inline resistor and the rest of the dicsussion will refer to them as  
+Components 
+-----
+
+![BlockDiagram.png](BlockDiagram.png)
+
+The circuit is built around a ZIF socket into which the device to be tested is placed.
+
+The pins of the ZIF socket are attached to the GPIO pins of an Arduino Nano and a pair of MCP23017 GPIO extenders. The extenders each provide 16 digital IO pins and the Arduino another 16 making a total of 48 digial IO pins.  
+
+Two GPIO pins are dedicatd to test each pin of the chip under test. These two GPIO pins are each configured with an inline resistor; one GPIO pin with a low resistance and the other GPIO pin with a high resistance. The rest of the discussion will refer to these two pins as
+
 - "GPIO-L" - the GPIO pin with a low low in-line resistor 
 - "GPIO-H" - the GPIO pin with a high value in-line resistor
 
-Together these two GPIO pins provide a single “test pin” that is attached to the pin of the chip under test.
+These two pins are connected together as shown below and together these two GPIO pins provide a single *“Test Pin”* that is attached to the pin of the chip under test via the ZIF socket.
 
 ![pin-config.png](pin-config.png)
 
 **GPIO-L and GPIO-H operate as a pair in one of three modes:**
 
-- **Driving an input** or **Power supply input to chip being tested**
+- **Driving an input pin** or **driving a Power supply pin to chip being tested**
   
   Where the test subject’s pin is expected to be either a logic input, or  GND/VCC, then GPIO-L is set to a L or H output. Set H for Vcc or for a logic 1 input and set L for GND or a logic 0 input. 
   
   GPIO-H is not relevant in this use case and it is configured as a high  impedance (input) state.
  
-- **Testing an output**
+- **Testing an output pin**
   
   This test can distinguish a logic 1 from a logic 0 from a high-Z
 
@@ -235,11 +245,11 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 
   This test relies on the fact that if the test chip's output is asserting a 1 or 0 then this signal would swamp a small pull up or pull down applied if it were applied to the same wire. This explains the purpose of the GPIO-H line which has a high value resistance. GPIO-H can be used to attempt to pull the wire up or down during the tests. If the circuit is sucessfully able to pull the pin both up and down then this can only be possble if the pin is in a high Z or disconnected state. 
 
-  Two tests are then performed
-  - GPIO-H is set to High to apply a weak pull-up to the test chips pin and GPIO-L reads the result
-  - GPIO-H is set to Low  to apply a weak pull-down to the test chips pin and again GPIO-L reads the result 
+  Two tests are then performed:
+  1) GPIO-H is set to High to apply a weak pull-up to the test chip's pin and GPIO-L reads the value of the test pin
+  2) GPIO-H is set to Low  to apply a weak pull-down to the test chip's pin and again GPIO-L reads the value of the test pin 
   
-  If both the pull-up & pull-down events are sensed by GPIO-L then this indicates that the test pin is in a high impedance state. If however we only sense a L during both tests then the test pin must be asserting a 0, and if only a H is sensed then the test pin must be asserting a 1.
+  If both the pull-up & pull-down events are sensed by GPIO-L then this indicates that the test pin is in a high impedance state. If however only L is sensed during both tests then the chip's pin must be asserting a 0, and if only a H is sensed then the chip's pin must be asserting a 1.
 
   :white_check_mark: It ought also be possible to detect an open collector output in a similar manner. When the open collector output is asserting a 0 then the pull-up/down test will fail and will always sense a L, but when the open collector output is logic 1 then it's output will be floating and the pull up/down check ought to be sucessful.
 
@@ -252,24 +262,24 @@ Together these two GPIO pins provide a single “test pin” that is attached to
 Demo
 ----
 
-:star: [Click here to use interactive demo](http://tinyurl.com/skrhf8r) 
+:star: [Click here to use interactive demo](http://tinyurl.com/tstdwrg) 
 
-[![circuitjs-demo.png](circuitjs-demo.png)](http://tinyurl.com/skrhf8r)
+[![circuitjs-demo.png](circuitjs-demo.png)](http://tinyurl.com/tstdwrg)
 
 Choice of resistor values
 -------
 
 __GPIO-L__
 
-The resistor on GPIO-L is present solely to provide over-current protection. However, one of the modes of use for the test pins is to drive VCC and GND of the test subject, so this resistor has to be low enough that it can source and sink sufficient current that the test chip will operate correctly.
+The resistor on GPIO-L is present solely to provide over-current protection. However, one of the modes of use for the test pins is to drive VCC and GND of the test subject, so this resistor must be low enough that it can source and sink sufficient supply current that the test chip will operate correctly.
 
 However, the resistor can't be so small that it fails to provide short circuit protection to the GPIO pin.
 
 So we want the resistor to be a low value, but not too low.
 
-In the end I went for 150R in the implementation because I figured all current paths would have at least two serial resistors meaning the path would typically be 2x150R=300R meaning about 15mA would pass at 5v. 
+In the end I went for 150R in the implementation because I figured all current paths would have at least two serial resistors meaning the path would typically be 2x150R=300R meaning about 15mA would pass at 5v.
 
-This is probably unreliable logic because in some errant cases the shorted pins and their resistors might be in parallel and the effective resistance will be reduced, but I figure it's good enough. 
+This calculation isn't 100% logical because in some cases their might be multiple shorted pins and their resistance might be in parallel and the effective resistance will be reduced, but I figure it's good enough.
 
 __GPIO-H__
 
@@ -329,3 +339,9 @@ How to fix the excessive arduino logging in VSCode
 "It seems the excessive debug logging is caused by running Java with -DDEBUG=true. Adding -DDEBUG=false to the C:\Program Files (x86)\Arduino\arduino_debug.l4j.ini fixes it for me."
 
 See https://github.com/microsoft/vscode-arduino/issues/891
+
+
+Fix background noise problem when recording video
+------
+
+https://www.howto-connect.com/how-to-filter-microphone-background-noise-windows-10/
