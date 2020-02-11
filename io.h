@@ -119,8 +119,7 @@ OR use a block like ...
 #define INFOLN(...)  XXX_GEN(INFO, ##__VA_ARGS__)
 #define HALTLN(...)   {XXX_GEN(INFO, ##__VA_ARGS__); while (1) delay(10000);}
 #define MATCHLN(...)   {XXX_GEN(MATCH, ##__VA_ARGS__);}
-#define FAILLN(...)  {XXX_GEN(FAIL, ##__VA_ARGS__); while (1) delay(10000);}
+#define FAILLN(...)  {XXX_GEN(FAIL, ##__VA_ARGS__);}
 #define PASSLN(...)   {XXX_GEN(PASS, ##__VA_ARGS__);}
-
 
 #endif
