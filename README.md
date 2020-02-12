@@ -7,7 +7,7 @@ Hardware design and PCB can be found on EasyEda : https://easyeda.com/john.loner
 
 **Unusual features of this implementation**:
 - verifies correct functioning of tristate outputs
-- able to differentiate equivalent logic devices that differ terms output type; open collector outputs vs regular push-pull outputs eg 7405 vs 7404
+- able to differentiate equivalent logic devices that differ only in terms output type; open collector outputs vs regular push-pull outputs eg 7405 vs 7404
 
 Motivation
 ------
