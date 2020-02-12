@@ -1,28 +1,19 @@
 #include "strings.h"
 
-void emptySocket() {
-  // 11 pin each side socket empty self test - 11 because orig hw has bug on top
-  test_ic(F("ZZZZZZZZZZZ/ZZZZZZZZZZZ"), F("Empty socket self test"));
+void check(int interval, int *elapsed) {
+  test_ic("SSSSSSSSSSSSSSSSSSSSSS", itoa(*elapsed));  // capacitance test
+  delay(interval);
+  *elapsed += interval;
 }
 
 void decay() {
-#define DECAY_TEST F("SSSSSSSSSSSSSSSSSSSSSS")
   test_ic(F("1111111111111111111111"), F("Charge pins up"));            // capacitance test
-  test_ic(DECAY_TEST, F("0 secs"));  // capacitance test
-  delay(1000);
-  test_ic(DECAY_TEST, F("1 sec"));  // capacitance test
-  delay(1000);
-  test_ic(DECAY_TEST, F("2 secs"));  // capacitance test
-  delay(4000);
-  test_ic(DECAY_TEST, F("6 secs"));  // capacitance test
-  delay(4000);
-  test_ic(DECAY_TEST, F("10 secs"));  // capacitance test
-  delay(5000);
-  test_ic(DECAY_TEST, F("15 secs"));  // capacitance test
-  delay(5000);
-  test_ic(DECAY_TEST, F("20 secs"));  // capacitance test
-  delay(5000);
-  test_ic(DECAY_TEST, F("25 secs"));  // capacitance test
+  
+  int elapsed = 0;
+  int i = 25;
+  while (i-- > 0) {
+    check(1000, &elapsed);
+  }
 }
 
 void barLedTestPattern() {

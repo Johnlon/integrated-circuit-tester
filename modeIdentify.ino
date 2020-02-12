@@ -1,76 +1,85 @@
 #include "strings.h"
-
 #include "myChipsDatabase.h"
+#include "tester_wires.h"
 
-const char string_0[] PROGMEM = "String 0";
-
-const char* const chips[] PROGMEM = {
-  CHIP_x74245, 
-  CHIP_74138,
-  CHIP_x74173,
-  CHIP_EMPTY
-};
-
-void identify(boolean verbose, boolean stopOnFirstMatch) {
+void identify(boolean verbose, boolean skipOnFirstFail, boolean stopOnFirstMatch) {
   // only include the chips you want to include in the scan - reduces the
   // program storage space n
 
-  INFOLN(F("IDENTIFYING ... "));
+  int matches = 0;
+  int count = sizeof(chips)/sizeof(const char* const);
 
-  for (int i=0; i < sizeof(chips)/sizeof(const char* const); i++) {
+  INFOLN(F("IDENTIFYING (db size "), count, F(")... "));
 
-    char chipBuf[700+1];
-    strncpy_P(chipBuf, (char*)pgm_read_dword(&(chips[i])), sizeof(chipBuf));
+  for (int i=0; i < count; i++) {
+
+    if (verbose) {
+      INFOLN(F("--------------------------------------------------------------"));
+    }
   
-    char *name = strtok(chipBuf, ":");
-    if (name == NULL) {
+    // two levels of indirection - firsly the array is PROGMEM so we have to grab the address of the array element from progmem.
+    // - secondly inside tokenise() we have to walk the PROGMEM string that that address points at
+    FSH chipDef= (FSH)pgm_read_word_near(&chips[i]);
+
+    // read fields
+    char name[6];
+    int sz = tokenise(chipDef, ':', name, sizeof(name));
+    if (sz == -1) {
         ERRORLN(F("missing chip name"));
         break;
     }
-
-    char *desc = strtok(NULL, ":");
-    if (desc == NULL) {
-        ERRORLN(F("missing chip description"));
+    pad(name, sizeof(name), 32);
+    
+    char desc[100];
+    sz = tokenise(NULL, ':', desc, sizeof(desc));
+    if (sz == -1) {
+        ERRORLN(F("missing chip description"), " for ", name);
         break;
     }
-
-    INFOLN(F("Testing: "), name, F(" : ") , desc);
-
-    bool allok = true;
     
+    INFOLN(name, " : ", desc)
+   
+    bool allok = true;
     int c = 0;
     reset();
    
     while (true) {
-
-        char *test = strtok(NULL, ":");
-        if (test == NULL) {
-            INFOLN(F("no more test cases, "), itoa(c), F(" executed"));
+        char test[2*SOCKET_PINS]; // space for a stupid number of separators
+        sz = tokenise(NULL, ':', test, sizeof(test));
+        if (sz == -1) {
+            if (verbose) {
+              INFOLN(F("no more test cases, "), itoa(c), F(" executed"));
+            }
             break;
         }
 
-        char *testdesc = strtok(NULL, ":");
-        if (testdesc == NULL) {
+        char testdesc[100];
+        sz = tokenise(NULL, ':', testdesc, sizeof(testdesc));
+        if (sz == -1) {
             ERRORLN(F("missing test case description"));
-            allok = false;
             break;
         } 
 
         bool ok = test_ic(test, testdesc, verbose);
-        if (!ok)
-            allok = false;
+        if (!ok) {
+          allok = false;
+          if (skipOnFirstFail) break;
+        }
         c++;
     }
 
     if (allok) {
       MATCHLN(F("matches: "), name)
-      if (stopOnFirstMatch) {
-        break;
+      matches ++;
+      if (stopOnFirstMatch) return;
+    } else {
+      if (verbose) {
+        INFOLN(F("no match: "), name)
       }
     }
-    else 
-      INFOLN(F("no match: "), name)
   }
+
+  INFOLN(F("found "), matches, F(" matches")); 
 
   reset();
 }

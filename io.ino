@@ -31,7 +31,6 @@ char * readline(char* buffer, int maxLen) {
         buffer[l+1] = '\0';
       }
     }
-    delay(10);
   }
   
   // not reached

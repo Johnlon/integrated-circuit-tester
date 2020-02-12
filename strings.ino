@@ -43,9 +43,10 @@ a value known to be a 'const char * const XXXX PROGMEM = "string"' in which case
 PROGMEM is enough to ensure the string enters the EEPROM however the __FlashStringHelper identifies this param 
 as having to be one of the above.
 */
-int tokenise(const __FlashStringHelper * FSH, const char delimiter , char *buffer, size_t bufLength)
+
+int tokenise(const __FlashStringHelper * fsh, const char delimiter , char *buffer, size_t bufLength)
 {
-  char *s = (char *) FSH;
+  char *s = (char *) fsh;
   static const char *str = NULL;
 
   if (s != NULL) {
@@ -53,7 +54,7 @@ int tokenise(const __FlashStringHelper * FSH, const char delimiter , char *buffe
   }
 
   if (str == NULL) {
-    Serial.println("T:1");
+  //  Serial.println("T:1");
     // Need a new string
     buffer[0] = '\0';
     return -1;
@@ -64,8 +65,8 @@ int tokenise(const __FlashStringHelper * FSH, const char delimiter , char *buffe
   while (1) {
     char c = pgm_read_byte(str++);
 
-    Serial.print("R");
-    Serial.print(c);
+    // Serial.print("R");
+    // Serial.print(c);
     
     if (c == '\0') {
       str = NULL; // Reached end of string

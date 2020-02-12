@@ -55,11 +55,6 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
 
   const char* sep = " : ";
 
-  char testcase[strlen(scenario) + strlen(sep) + strlen(name) +1];
-  strcpy(testcase, scenario);
-  strcat(testcase, sep);
-  strcat(testcase, name);
-
   int clkPin = -1;
 
   if (pins % 2 != 0) {;
@@ -225,9 +220,9 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
 
   if (verbose) {
     if (pass) {
-      PASSLN(testcase);
+      PASSLN(scenario, sep, name);
     } else {
-      FAILLN(testcase);
+      FAILLN(scenario, sep, name);
     }
     INFOLN(result);
   }
@@ -292,7 +287,6 @@ char* strip(const char * str, char remove) {
 
 #ifdef USE_VI_PINS  
 char* patchScenario(const char* sin) {
-  static char patchedScenario[SOCKET_PINS + 1];
   int len = strlen(sin);
   
   int maxAvailable = (SOCKET_PINS - 2);
@@ -306,7 +300,8 @@ char* patchScenario(const char* sin) {
     ERRORLN(F("can't patch scenario - too long, length is "), bLen, F(" but only "), itoa(maxAvailable), " is allowed due to h/w bug");
     return NULL;
   }
-
+ 
+  static char patchedScenario[SOCKET_PINS + 1];
   strcpy(patchedScenario, "-");
   strcat(patchedScenario, sin);
   strcat(patchedScenario, "-");
