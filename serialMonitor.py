@@ -1,18 +1,23 @@
 #!/usr/bin/python3
 import serial
-
-#import syslog
 import time
-
 import string
 import sys
 import threading
 import time
-#import Queue
+import platform
 
-#The following line is for serial over GPIO
-port = 'com6' 
-#port = '/dev/ttyS6' 
+com='6'
+
+print("serial port [%s] ? " % com)
+c = sys.stdin.read(1)
+if (c.strip() != ""):
+	com = c
+
+if (platform.system() == "Linux"):
+	port = '/dev/ttyS' + com 
+else:
+	port = 'com' + com
 
 print("opening "+ port)
 
