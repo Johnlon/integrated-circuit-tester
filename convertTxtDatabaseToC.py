@@ -1,6 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+#
+# Understands the format of the Smark IC Tester database file.
+# Converts this into a form that can be used by this tester.
+#
 
 import sys
+import urllib.request
 
 
 name = ""
@@ -8,10 +13,15 @@ desc = ""
 tests=[]
 readtests = False
 
-databaseTxt = open("database.txt", "r")
-chipsDatabaseIno = open("chipsDatabase.h", "w")
+src="https://raw.githubusercontent.com/akshaybaweja/Smart-IC-Tester/master/database.txt"
 
-#chipsDatabaseIno.write("const char * chipsDatabase[] = {\n")
+page = urllib.request.urlopen(src)
+databaseTxtResp=page.read().decode("utf-8")
+
+databaseTxt = databaseTxtResp.split("\n")
+#databaseTxt = open("database.txt", "r")
+
+chipsDatabaseIno = open("chipsDatabase.h", "w")
 
 for line in databaseTxt:
     line = line.strip()
