@@ -127,8 +127,6 @@ void identify(boolean verbose, boolean skipOnFirstFail, boolean stopOnFirstMatch
   int matches = 0;
   int count = sizeof(chips)/sizeof(const char* const);
 
-  INFOLN(F("IDENTIFYING (db size "), count, F(")... "));
-
   for (int i=0; i < count; i++) {
 
     if (verbose) {

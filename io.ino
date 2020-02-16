@@ -1,16 +1,8 @@
 #include "io.h"
 
-
-/* truncates line if exceeds MAX_LEN */
-char * readline() {
-  const int MAX_LEN = 100;
-  static char buffer[MAX_LEN+1] = "";
-  return readline(buffer, MAX_LEN);
-}
-
 /* truncates line if exceeds maxLen */
-char * readline(char* buffer, int maxLen) {
-
+char * readlineI(char* buffer, int maxLen) {
+  
   static boolean lastWasCr = false; // used to allow skipping empty lines
   
   buffer[0] = '\0';
@@ -34,4 +26,15 @@ char * readline(char* buffer, int maxLen) {
   }
   
   // not reached
+}
+
+
+/* truncates line if exceeds maxLen */
+char * readline(char* buffer, int maxLen) {
+  Serial.print(F("READY > "));
+  
+  char* ret = readlineI(buffer, maxLen);
+  Serial.println(ret);
+  
+  return ret;
 }

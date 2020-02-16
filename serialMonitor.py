@@ -12,6 +12,7 @@ import time
 
 #The following line is for serial over GPIO
 port = 'com6' 
+#port = '/dev/ttyS6' 
 
 print("opening "+ port)
 

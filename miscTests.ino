@@ -19,30 +19,31 @@ void decay() {
   }
 }
 
+void testWithDelay(const __FlashStringHelper*  raw, const __FlashStringHelper* name, int delayMS) {
+  test_ic(raw, name);
+  delay(delayMS);
+ }
+
 void barLedTestPattern() {
-  int i = 10;
-  while (i-- > 0) {
-    
+  int o = 2;
+
+  while (o-- > 0) {
     int i = 5;
     int d1 = 200;
+  
     while (i-- > 0) {
-      test_ic(F("11111111111/00000000000"), F("on"));
-      delay(d1);
-      test_ic(F("00000000000/00000000000"), F("of"));
-      delay(d1);
+      testWithDelay(F("11111111111/00000000000"), F("on"), d1);
+      testWithDelay(F("00000000000/00000000000"), F("of"), d1);
     }
-    
+
     int j = 16;
     int d2 = 20;
+    
     while (j-->0) {
-      test_ic(F("10001000100/00000000000"), F("walk"));
-      delay(d2);
-      test_ic(F("01000100010/00000000000"), F("walk"));
-      delay(d2);
-      test_ic(F("00100010001/00000000000"), F("walk"));
-      delay(d2);
-      test_ic(F("00010001000/00000000000"), F("walk"));
-      delay(d2);
+      testWithDelay(F("10001000100/00000000000"), F("walk"), d2);
+      testWithDelay(F("01000100010/00000000000"), F("walk"), d2);
+      testWithDelay(F("00100010001/00000000000"), F("walk"), d2);
+      testWithDelay(F("00010001000/00000000000"), F("walk"), d2);
     }
   }
 }

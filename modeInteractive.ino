@@ -11,7 +11,8 @@ void usage() {
   INFOLN(F("  s - sample all pins - just sample the value of the pin"));
   INFOLN(F("  1 - set all pins to 1"));
   INFOLN(F("  0 - set all pins to 0"));
-  INFOLN(F("  i - identify chip"));
+  INFOLN(F("  i - identify chip - stop on first match"));
+  INFOLN(F("  I - identify chip - exhaustive"));
   INFOLN(F("  / - repeat last action"));
   INFOLN(F("  l - led array test pattern"));
   INFOLN(F("  d - decay test for capacitance on pins - leave socket empty"));
@@ -65,6 +66,10 @@ void interactive() {
       } break;
 
       case 'i':
+        identify(false, true, true);
+        break;
+
+      case 'I':
         identify(false, true, false);
         break;
 

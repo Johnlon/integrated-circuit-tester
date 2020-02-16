@@ -32,13 +32,14 @@ boolean test_ic(const char*  raw, const char* name) {
    returns true if test passes, false otherwise
 */
 boolean test_ic(const char*  raw, const char* name, bool verbose) {
-  if (strlen(raw) > SOCKET_PINS_VALID) {
-    ERRORLN(F("too many pins in test pattern, max expected "), SOCKET_PINS_VALID, F(", but got "), strlen(raw))//, F(" in '"), raw, F("'"))
-    return false;
-  }
 
   char * scenario = strip(raw, '/');
   if (scenario == NULL) return false;
+
+  if (strlen(scenario) > SOCKET_PINS_VALID) {
+    ERRORLN(F("too many pins, max is "), SOCKET_PINS_VALID, F(", but got "), strlen(raw), F(" in '"), raw, F("'"))
+    return false;
+  }
 
   scenario = fillUnusedPins(scenario);
   if (scenario == NULL) return false;
