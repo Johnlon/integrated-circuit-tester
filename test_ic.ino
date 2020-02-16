@@ -32,35 +32,34 @@ boolean test_ic(const char*  raw, const char* name) {
    returns true if test passes, false otherwise
 */
 boolean test_ic(const char*  raw, const char* name, bool verbose) {
+  if (strlen(raw) > SOCKET_PINS_VALID) {
+    ERRORLN(F("too many pins in test pattern, max expected "), SOCKET_PINS_VALID, F(", but got "), strlen(raw))//, F(" in '"), raw, F("'"))
+    return false;
+  }
 
   char * scenario = strip(raw, '/');
   if (scenario == NULL) return false;
 
-#ifdef USE_VI_PINS  // but in original board - this tweak pushes the test case
-  // down the Zif by on position
-  scenario = patchScenario(scenario);
-  if (scenario == NULL) return false;
-
-#endif
-
   scenario = fillUnusedPins(scenario);
   if (scenario == NULL) return false;
 
+#ifdef USE_VI_PINS  
+  // use with in original board - this tweak pushes the test case 
+  // down the Zif by one position to avoid those pins
+  scenario = patchScenario(scenario);
+  if (scenario == NULL) return false;
+#endif
+
   int pins = strlen(scenario);
 
-  if (pins > SOCKET_PINS) {
-      ERRORLN(scenario, F(" : testcase too long, max allowed len is "), SOCKET_PINS);
+  if (pins != SOCKET_PINS) {
+      ERRORLN(scenario, F(" : test case length wrong, need "), SOCKET_PINS, F(", got "), pins);
       return false;
   }
 
   const char* sep = " : ";
 
   int clkPin = -1;
-
-  if (pins % 2 != 0) {;
-    ERRORLN(scenario, F(": Scenario must have even number of pins"));
-    return false;  
-  }
 
   // Setting Vcc, GND and output pins of the IC under test
   for (int i = 0; i < pins; i++) {
@@ -156,7 +155,6 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
         ERRORLN(location);
         return false;
     }
-    //println(ctoa(code), "' at pos ", itoa(i+1));
   }
 
   // toggle the clock high then low
@@ -240,6 +238,14 @@ boolean test_ic(const char* scenario) {
   test_ic(scenario, "");
 }
 
+void testX(char x, const char* name) {
+  // TODO : use #ifdef here to use -2 only on the old hardware setting
+  char buf[SOCKET_PINS_VALID+ 1];
+
+  fill(buf, sizeof(buf), x);
+  test_ic(buf, name);
+}
+
 void reset() {
   //INFOLN(F("RESET"));
 
@@ -261,6 +267,7 @@ void reset() {
   }
 }
 
+// strips the given char from the string
 char* strip(const char * str, char remove) {
   static char stripped[SOCKET_PINS + 1];
   int len = strlen(str);
@@ -273,7 +280,7 @@ char* strip(const char * str, char remove) {
 
     if (to > SOCKET_PINS) {
       ERRORLN(str);
-      ERRORLN(F("can't strip special chars - too long, max allowed is "), itoa(SOCKET_PINS));
+      ERRORLN(F("can't strip special chars - too long, max allowed is "), SOCKET_PINS);
       return NULL;
     }
 
@@ -289,15 +296,9 @@ char* strip(const char * str, char remove) {
 char* patchScenario(const char* sin) {
   int len = strlen(sin);
   
-  int maxAvailable = (SOCKET_PINS - 2);
-  
-  if (strlen(sin) > maxAvailable) {
+  if (strlen(sin) != SOCKET_PINS_VALID) {
     ERRORLN(sin);
-
-    static char bLen[16+1];
-    itoa(len, bLen, 10);
-
-    ERRORLN(F("can't patch scenario - too long, length is "), bLen, F(" but only "), itoa(maxAvailable), " is allowed due to h/w bug");
+    ERRORLN(F("can't patch scenario - too long, length is "), len, F(" but only "), SOCKET_PINS_VALID, F(" allowed"));
     return NULL;
   }
  
@@ -311,38 +312,23 @@ char* patchScenario(const char* sin) {
 
 
 char* fillUnusedPins(const char* test) {
-  static char filledUnusedPins[SOCKET_PINS + 1];
-
-//println("FILLING " + test);
   int len = strlen(test);
 
-  int unusedPins = 2 * unusedSlots(len);
+  int unusedPins = SOCKET_PINS_VALID -  len;
 
-  char fill[unusedPins + 1];
+  static char filledUnusedPins[SOCKET_PINS + 1];
+  filledUnusedPins[0] = 0;
 
-  int i = 0;
-  while (i < unusedPins) {
-    fill[i++] = 'u';
+  strcpy(filledUnusedPins, test);
+  int leftLen = ((len+1) / 2);
+  filledUnusedPins[leftLen] = '\0';
+
+  fill(filledUnusedPins+leftLen, unusedPins+1, 'u');
+  strcat(filledUnusedPins, test+leftLen);
+  
+  if (strlen(filledUnusedPins) != SOCKET_PINS_VALID) {
+    HALTLN(F("SW ERROR WRONG LEN, expected "), SOCKET_PINS_VALID, F(" but got "), strlen(filledUnusedPins), F(" in '"), filledUnusedPins, F("'"))
   }
-  fill[i] = '\0';
-
-  char left[len + 1];
-  strcpy(left, test);
-  left[len / 2] = '\0';
-
-  char right[len + 1];
-  strcpy(right, test + (len / 2));
-  right[len / 2] = '\0';
-
-  // println("IN    "+ String(test));
-  // println("LEFT  "+ String(left));
-  // println("RIGHT "+ String(right));
-  // println("FILL  "+ String(fill));
-
-  filledUnusedPins[0] = '\0';
-  strcpy(filledUnusedPins , left);
-  strcat(filledUnusedPins , fill);
-  strcat(filledUnusedPins , right);
 
   return filledUnusedPins;
 }

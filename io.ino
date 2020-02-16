@@ -3,7 +3,7 @@
 
 /* truncates line if exceeds MAX_LEN */
 char * readline() {
-  static const int MAX_LEN = 100;
+  const int MAX_LEN = 100;
   static char buffer[MAX_LEN+1] = "";
   return readline(buffer, MAX_LEN);
 }

@@ -1,75 +1,65 @@
 #include "tester_wires.h"
 
-void usage() {
-  // const __FlashStringHelper * GAP  = F(" - ");
-  INFOLN(F("t:testpattern[:desc] - perform test using given pattern"));
-  INFOLN(F("t - repeat last test"));
-  INFOLN(F("? - test all pins"));
-  INFOLN(F("s - sample all pins"));
-  INFOLN(F("1 - set all pins to 1"));
-  INFOLN(F("0 - set all pins to 0"));
-  INFOLN(F("i - identify chip"));
-  INFOLN(F("/ - repeat last action"));
-  INFOLN(F("l - led array test pattern"));
+void tUsage() {
+  INFOLN(F("usage:"));
+  INFOLN(F("  t:testpattern[:desc] - perform test using given pattern"));
 }
 
-void testX(char x, const char* name) {
-#ifdef USE_VI_PINS
-  // TODO : use #ifdef here to use -2 only on the old hardware setting
-  char buf[SOCKET_PINS - 2 + 1];
-#else
-  char buf[SOCKET_PINS + 1];
-#endif
-  fill(buf, sizeof(buf), x);
-  test_ic(buf, name);
+void usage() {
+  tUsage();
+  INFOLN(F("  ? - test all pins - uses the pullup/down test"));
+  INFOLN(F("  s - sample all pins - just sample the value of the pin"));
+  INFOLN(F("  1 - set all pins to 1"));
+  INFOLN(F("  0 - set all pins to 0"));
+  INFOLN(F("  i - identify chip"));
+  INFOLN(F("  / - repeat last action"));
+  INFOLN(F("  l - led array test pattern"));
+  INFOLN(F("  d - decay test for capacitance on pins - leave socket empty"));
 }
 
 void interactive() {
+  const int INPUT_MAX_LEN = 100;
+  
   INFOLN(F("INTERACTIVE MODE:"));
   usage();
 
   char op;
-  char lastOp = 0;
-  const int MaxLen = 100;
-  char prevTestcase[MaxLen + 1] = "";
-  char lastdata[MaxLen + 1] = "";
+  char prevCommand[INPUT_MAX_LEN + 1] = "";
 
   do {
-    char data[MaxLen + 1] = "";
-    readline(data, MaxLen);
+    char command[INPUT_MAX_LEN + 1] = "";
+    readline(command, INPUT_MAX_LEN);
 
-    op = data[0];
+    op = command[0];
+
+    // if this command is / then just repeat whatever the previous op was
     if (op == '/') {
-      op = lastOp;
-      strcpy(data, lastdata);
+      strcpy(command, prevCommand);
+      op = command[0];
     }
 
-    lastOp = op;
-    strcpy(lastdata, data);
+    // keep a copy of this operation in case the next operation is a command to repeat this one
+    strcpy(prevCommand, command);
 
-    char tokenise[MaxLen + 1] = "";  // for tokenisation
-    strcpy(tokenise, data);
-    char* token = strtok(tokenise, ":");
+    // start parsing the command - make a 
+    char* token = strtok(command, ":");
 
     switch (op) {
       case 'h': {
         usage();
         break;
       }
+      
       case 't': {
         char* testcase = strtok(NULL, ":");
         if (testcase == NULL) {
-          if (prevTestcase[0] == 0) {
-            ERRORLN(F("missing testcase argument in '"), data, "'");
+            ERRORLN(F("missing testcase"));
+            tUsage();
             break;
-          } else
-            testcase = prevTestcase;
-        } else {
-          strcpy(prevTestcase, testcase);
-        }
+        } 
+        
         char* desc = strtok(NULL, ":");
-        if (desc == NULL)
-          desc = (char*)"";
+        if (desc == NULL) desc = (char*)"";
 
         test_ic(testcase, desc);
       } break;

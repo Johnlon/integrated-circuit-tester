@@ -14,4 +14,10 @@ struct Pins {
 // The PCB has 28 holes but the bottom 4 pins are not connected and are just drill holes.
 #define SOCKET_PINS 24
 
+#ifdef USE_VI_PINS  // only using original board
+  #define SOCKET_PINS_VALID (SOCKET_PINS - 2)
+#else
+  #define SOCKET_PINS_VALID SOCKET_PINS
+#endif
+
 #endif

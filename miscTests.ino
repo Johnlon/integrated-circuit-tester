@@ -1,7 +1,10 @@
 #include "strings.h"
 
 void check(int interval, int *elapsed) {
-  test_ic("SSSSSSSSSSSSSSSSSSSSSS", itoa(*elapsed));  // capacitance test
+  char buf[16+1];
+  itoa(*elapsed, buf, 10);
+
+  test_ic("SSSSSSSSSSSSSSSSSSSSSS", buf);  // capacitance test
   delay(interval);
   *elapsed += interval;
 }
