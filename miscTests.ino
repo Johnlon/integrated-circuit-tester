@@ -10,11 +10,12 @@ void check(int interval, int *elapsed) {
 }
 
 void decay() {
+  int secs = 10;
+  INFOLN(F("will run for (secs) : "), secs)
   test_ic(F("1111111111111111111111"), F("Charge pins up"));            // capacitance test
   
   int elapsed = 0;
-  int i = 25;
-  while (i-- > 0) {
+  while (secs-- > 0) {
     check(1000, &elapsed);
   }
 }
