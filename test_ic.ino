@@ -75,7 +75,8 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
       case '-':
 #endif
       case 'X':
-        // dont care - set to weak pull so as not to leave floating
+        // dont care 
+        // sets a weak pull-down so as not to leave floating?
         xPinMode(gpioL, INPUT);
         xPinMode(gpioH, OUTPUT);
         xDigitalWrite(gpioH, LOW);
@@ -160,12 +161,10 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
 
   // toggle the clock high then low
   if (clkPin != -1) {
-    //println("clocking");
     xDigitalWrite(clkPin, HIGH);
     xDigitalWrite(clkPin, LOW);
   }
 
-  //  println("Looping");
   boolean pass = true;
   char result[SOCKET_PINS+1] = "";
 
