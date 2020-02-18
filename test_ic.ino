@@ -223,7 +223,7 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
     } else {
       FAILLN(scenario, sep, name);
     }
-    INFOLN(result);
+    RESULTLN(result);
   }
   return pass;
 }

@@ -1,100 +1,101 @@
 #!/usr/bin/python3
-import serial
+from serial import Serial
 import time
 import string
 import sys
 import threading
 import time
 import platform
+from os import _exit
+import traceback
+import signal
 
-com='6'
+## compat
+try:
+  import readline
+except ImportError:
+  import pyreadline as readline
 
-print("serial port [%s] ? " % com)
+com='5'
+
+print("serial port number [%s] ? " % com)
 c = sys.stdin.read(1)
 if (c.strip() != ""):
-	com = c
+    com = c
 
 if (platform.system() == "Linux"):
-	port = '/dev/ttyS' + com 
+    port = '/dev/ttyS' + com 
 else:
-	port = 'com' + com
+    port = 'com' + com
 
 print("opening "+ port)
 
-ard = serial.Serial(port,9600,timeout=1)
+ard = Serial(port,9600,timeout=0.05)
 
 print("opened "+ port)
 
-time.sleep(2) # wait for Arduino
+def keyboardInput():
 
-def add_input(buf):
-    while True:
-        c = sys.stdin.read(1)
-        buf.append(c)
-        #print("GOT ", c, "<<" , buf)
-        
+    try:
+        while True:
+            line = sys.stdin.readline().strip()
+            if (line == "q"):
+                break
 
+            # write to arduino
+            if len(line) > 0:
+                ard.write(line.encode("utf-8"))
+                ard.write("\n".encode("utf-8"))
+   
+        print("QUIT")
+        _exit(0)
+    except BaseException as x:
+        print("ERR READING STDIN\n")
+        print(x)
+        _exit(1)
 
 def readSerial():
-    msg = ard.readline() #(ard.inWaiting()) # read all characters in buffer
-    while (1): #len(msg.rstrip()) > 0):
-        resp = msg.decode("utf-8").strip()
-        if (len(resp) > 0):
-            print("> %s" % resp)
-        msg = ard.readline() #(ard.inWaiting()) # read all characters in buffer
+    try:
+        msg = ard.readline()
+        while (1): 
+            resp = msg.decode("utf-8")#.strip()
+            if (len(resp) > 0):
+                print("%s" % resp, end = '')
+                sys.stdout.flush()
+            msg = ard.readline()
+    except BaseException as x:
+        print("ERR ON SERIAL\n")
+        print(x)
+        _exit(1)
     
-def foobar(ard):
-    buf = []
-    input_thread = threading.Thread(target=add_input, args=(buf,))
-    input_thread.daemon = True
+def startThreads(ard):
+
+    # thread to read local keyboard input
+    input_thread = threading.Thread(target=keyboardInput)
+    input_thread.daemon = False
     input_thread.start()
 
+    # thread to read and print data from arduino
     sinput_thread = threading.Thread(target=readSerial)
     sinput_thread.daemon = True
     sinput_thread.start()
+    
+startThreads(ard)
 
-    last_update = time.time()
+
+# Support for CTRL-C needs main thread still running.
+# This is actually a crucial step, otherwise all signals sent to your program will be ignored.
+# Adding an infinite loop using time.sleep() after the threads have been started will do the trick: 
+try:
     while True:
-        
-        # if (time.time()-last_update)>01.5:
-
-        #     sys.stdout.write(".")
-        #     readSerial()
-        #     last_update = time.time()
-            
-        st = "".join(buf).rstrip()
-        #print(">>" , st)
-        
-        if len(st) > 0:
-            #print( "\ninput: [" , st, "]")
-            
-            ard.write(st.encode("utf-8"))
-            ard.write("\n".encode("utf-8"))
-            #print( "written")
-            
-            buf.clear()
-foobar(ard)
-
-print( "done")
-foobar(ard)
-
-i = 0
-
-while (i < 400):
-    # Serial write section
-
-    #time.sleep(1) # I shortened this to match the new value in your Arduino code
-
-    # Serial read section
-    msg = ard.readline() #(ard.inWaiting()) # read all characters in buffer
-    while (msg != 0):
-        print(msg.decode("ascii").strip())
-        msg = ard.readline() #(ard.inWaiting()) # read all characters in buffer
-    
-    
-    
-    i = i + 1
-else:
-    print("Exiting")
-
-exit()
+        time.sleep(1) 
+except KeyboardInterrupt:
+        _exit(1)   
+except BaseException as x:
+    try:
+        print("ERR3 %s" % x)
+        ard.close()
+        sys.stdin.close()
+        _exit(1)   
+    except:
+        _exit(1)   

@@ -134,5 +134,6 @@ OR use a block like ...
 #define MATCHLN(...)   {XXX_GEN(S_MATCH, ##__VA_ARGS__);}
 #define FAILLN(...)  {XXX_GEN(S_FAIL, ##__VA_ARGS__);}
 #define PASSLN(...)   {XXX_GEN(S_PASS, ##__VA_ARGS__);}
+#define RESULTLN(...)   {XXX_GEN(S_RESULT, ##__VA_ARGS__);}
 
 #endif

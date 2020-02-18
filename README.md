@@ -37,44 +37,44 @@ Step1: Understand the test case specification
 
 Specify a sequence of test cases using the following pin codes. These codes define the inputs and the expected outputs from the test subject.
 
-Settings
+**Test Specification Codes**
 
-   - V=VCC of chip under test (set gpioL to high; set gpioH to high)
-   - G=GND of chip under test (set gpioL to low ; set gpioH to low)
-   - 1=set input pin of chip under test to logic high
-   - 0=set input pin of chip under test to logic low
-   - C=clock pin will be toggled from 0 to 1 to 0 during the test case
+|Control|Description|
+|----|----|
+|**Input Codes**|Meaning
+|V|VCC of chip under test (set gpioL to high; set gpioH to high)
+|G|GND of chip under test (set gpioL to low ; set gpioH to low)
+|1|set input pin of chip under test to logic high
+|0|set input pin of chip under test to logic low
+|C|clock pin will be toggled from 0 to 1 to 0 during the test case
+|Outputs|Expectations/Assertions
+|L|expect logic low output from chip under test
+|H|expect logic high output from chip under test
+|Z|expect high impedance output from chip under test
+|X|dont care - pin gets set with a weak pull down
+|S|sample and display the signal at the pin, giving either 1 or 0 as the result; floating pins will give unpredictable values according to any stray charge on the pin
+|?|read the signal at the pin by applying a pullup/down to confirm it's state as one of 1/0/Z
+|Additionally..|
+|/|a spacer you can use wherever you like in the input pattern as a separator; for example for ease of reading groups of pins 
+|u|inserted automatically by the program to fill in any ZIF socket pins unused by the test - these pins will be tested for high impedance 
 
-Additional settings:
-   - /=a spacer you can use in the input pattern as a separator for example for ease of reading groups of pins or for whatever else you like
-   - u=identifies any unused pins and is added automatically by the program to fill in any pins the test says the chip isn't using - this pin will be tested for high impedance - don't typically need use this code yourself as it is effectively same as 'Z' 
+**Test Result Codes**
 
-Expectations
-   - L=expect logic low output from chip under test
-   - H=expect logic high output from chip under test
-   - Z=expect high impedance output from chip under test
-   - X=dont care - pin gets set with a weak pull down
-   - S=sample and display the signal at the pin, giving either 1 or 0 as the result; floating pins will give unpredictable values according to any stray charge on the pin
-   - ?=read the signal at the pin by applying a pullup/down to confirm it's state as one of 1/0/Z
+|Code|Meaning|
+|----|-------|
+|.|a pass for that pin - ie expected output was found
+|H|a LOW or Z was expected but HIGH was found
+|L|a HIGH or Z was expected but LOW was found
+|Z|a HIGH or LOW was expected but Z was found
+|1|the test pattern was ? and the value detected was 1
+|0|the test pattern was ? and the value detected was 0
+|_|identifies the pin as an input so there's no test result on this pin
+|Hack...
+|-|identifies the top two pins of the socket - in my inital design there's a hardware fault on those so I dont put the chip in the top position. This is only relevant if using the original hardware. In the later revision this bug is corrected by using different pins for the first row of the Zif.
 
-For example the test case "111G/HHHV" would mean... test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pin 8 is Vcc, and we expect pins 5,6,7 to be outputs with logic high.
+**Example**: The test case *"111G/HHHV"* would mean, test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pin 8 is Vcc, and we expect pins 5,6,7 to be outputs with logic high.
 
-An interesting test case is to leave the ZIF socket empty, apply a "1" on all test pins, then over a period of seconds  sample the 24 pins using "S" once per second. What you see is a decay of the charge on the pins over a few seconds. See the section below on stray capacitance. See also the 'decay' test case in the software.
-
-Test results
---------
-
-The test results use these codes:
-   - .=a pass for that pin - ie expected output was found
-   - H=a LOW or Z was expected but HIGH was found
-   - L=a HIGH or Z was expected but LOW was found
-   - Z=a HIGH or LOW was expected but Z was found
-   - 1=the test pattern was ? and the value detected was 1
-   - 0=the test pattern was ? and the value detected was 0
-   - _=identifies the pin as an input so there's no test result on this pin
- 
-Also, a hack ...
-   - -=identifies the top two pins of the socket - in my inital design there's a hardware fault on those so I dont put the chip in the top position. This is only relevant if using the original hardware. In the later revision this bug is corrected by using different pins for the first row of the Zif.
+An interesting test case is to leave the ZIF socket empty, apply a "1" on all test pins, then over a period of seconds  sample the 24 tests pins using *"S"* once per second. What you see is a decay of the charge on the pins over a few seconds. See the section below on stray capacitance. See also the 'decay' test case in the software.
 
 
 Step 2: Setup the hardware

@@ -13,10 +13,10 @@ void usage() {
   INFOLN(F("  0 - set all pins to 0"));
   INFOLN(F("  i - identify chip - stop on first match"));
   INFOLN(F("  I - identify chip - exhaustive"));
-  INFOLN(F("  / - repeat last action"));
   INFOLN(F("  l - led array test pattern"));
   INFOLN(F("  d - decay test for capacitance on pins - leave socket empty"));
-}
+  INFOLN(F("  / - repeat last action"));
+ }
 
 void interactive() {
   const int INPUT_MAX_LEN = 100;
@@ -26,9 +26,9 @@ void interactive() {
 
   char op;
   char prevCommand[INPUT_MAX_LEN + 1] = "";
-
+  char command[INPUT_MAX_LEN + 1] = "";
+    
   do {
-    char command[INPUT_MAX_LEN + 1] = "";
     readline(command, INPUT_MAX_LEN);
 
     op = command[0];
