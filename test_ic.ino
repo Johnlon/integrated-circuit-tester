@@ -58,9 +58,7 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
       return false;
   }
 
-  const char* sep = " : ";
-
-  int clkPin = -1;
+  int clockPin = -1;
 
   // Setting Vcc, GND and output pins of the IC under test
   for (int i = 0; i < pins; i++) {
@@ -108,7 +106,7 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
 
       // FOR CLK INPUT
       case 'C':
-        clkPin = gpioL;
+        clockPin = gpioL;
         xPinMode(gpioL, OUTPUT);
         xDigitalWrite(gpioL, LOW);  // low intially, will be toggled later
         xPinMode(gpioH, INPUT);
@@ -149,6 +147,7 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
         break;
 
       default:
+        // print location of errant code
         char location[SOCKET_PINS+1] = "";
         fill(location, SOCKET_PINS, ' ');
         location[i] = '^';
@@ -160,9 +159,9 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
   }
 
   // toggle the clock high then low
-  if (clkPin != -1) {
-    xDigitalWrite(clkPin, HIGH);
-    xDigitalWrite(clkPin, LOW);
+  if (clockPin != -1) {
+    xDigitalWrite(clockPin, HIGH);
+    xDigitalWrite(clockPin, LOW);
   }
 
   boolean pass = true;
@@ -217,6 +216,8 @@ boolean test_ic(const char*  raw, const char* name, bool verbose) {
   }
 
   if (verbose) {
+    const char* sep = " : ";
+
     if (pass) {
       PASSLN(scenario, sep, name);
     } else {
