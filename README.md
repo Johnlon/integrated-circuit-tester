@@ -35,46 +35,51 @@ Usage
 Step1: Understand the test case specification
 ---------
 
-Specify a sequence of test cases using the following pin codes. These codes define the inputs and the expected outputs from the test subject.
+A test case is specified as a sequence of codes, one per pin, specifying whether the pin is an input or output of the test chip. Where the pin is an input then the codes define whether the signal applied should be a 1 or 0, and where the pin is an output then the codes specify what the expectations are of the pin's value; for example whether the pin ought to be asserting a logic 1 or 0 output or whether it ought to be high impedance.
 
-**Test Specification Codes**
+**Example**: The test case *"111G/HHZV"* specifies the values and expectations of the pins from pin 1 to pin 8 in order, where pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, we expect pins 5,6 to be outputs with logic high, pin 7 an outut in the high-impedance state, and pin 8 is Vcc. The *'/'* character is a separator character that can be used anywhere in the test case and is ignored by the test framwork.
 
-|Control|Description|
+This test pattern syntax used here is based on that used by [Smart IC Tester](https://github.com/akshaybaweja/Smart-IC-Tester) but is extended to include various new features including Z testing as well as codes that relate to exploratory testing that are unique to this device. In fact this device can import tests that have been defined for Smart IC Tester because the syntax here is a strict superset. The python script "*convertTxtDatabaseToC.py*" performs the import and conversion.
+
+**Test Specification Pin Codes**
+
+|Code|Description|
 |----|----|
-|**Input Codes**|Meaning
+|**Input Codes**|Settings for inputs...
 |V|VCC of chip under test (set gpioL to high; set gpioH to high)
 |G|GND of chip under test (set gpioL to low ; set gpioH to low)
 |1|set input pin of chip under test to logic high
 |0|set input pin of chip under test to logic low
 |C|clock pin will be toggled from 0 to 1 to 0 during the test case
-|Outputs|Expectations/Assertions
+|**Output Codes**|Expectations/Assertions
 |L|expect logic low output from chip under test
 |H|expect logic high output from chip under test
 |Z|expect high impedance output from chip under test
 |X|dont care - pin gets set with a weak pull down
-|S|sample and display the signal at the pin, giving either 1 or 0 as the result; floating pins will give unpredictable values according to any stray charge on the pin
-|?|read the signal at the pin by applying a pullup/down to confirm it's state as one of 1/0/Z
-|Additionally..|
+|?|exploring the function of the device - reads the signal at the pin by applying a pullup/down check to confirm it's state as one of 1/0/Z
+|S|sample signal at the pin without applying the pullup/down checkgiving a result of either 1 or 0; floating pins will give unpredictable values according to any stray charge on the pin
+|**Additionally..**|
 |/|a spacer you can use wherever you like in the input pattern as a separator; for example for ease of reading groups of pins 
 |u|inserted automatically by the program to fill in any ZIF socket pins unused by the test - these pins will be tested for high impedance 
 
 **Test Result Codes**
 
-|Code|Meaning|
-|----|-------|
-|.|a pass for that pin - ie expected output was found
-|H|a LOW or Z was expected but HIGH was found
-|L|a HIGH or Z was expected but LOW was found
-|Z|a HIGH or LOW was expected but Z was found
-|1|the test pattern was ? and the value detected was 1
-|0|the test pattern was ? and the value detected was 0
-|_|identifies the pin as an input so there's no test result on this pin
+After executing a test case the system reports back a pin by pin result of the test. The codes used in the results are as follows..
+
+|Code|Meaning|Note|
+|----|-------|---|
+|.|indicated that expected output was found |a *pass*
+|H|a LOW or Z was expected but HIGH was found|a *failure*
+|L|a HIGH or Z was expected but LOW was found|a *failure*
+|Z|a HIGH or LOW was expected but Z was found|a *failure*
+|1|the test pattern was ? and the value detected was 1| *exploratory result*
+|0|the test pattern was ? and the value detected was 0| *exploratory result*
+|_|underscore identifies the pin as an input so there's no test result on this pin |*no-op*
 |Hack...
-|-|identifies the top two pins of the socket - in my inital design there's a hardware fault on those so I dont put the chip in the top position. This is only relevant if using the original hardware. In the later revision this bug is corrected by using different pins for the first row of the Zif.
+|-|hyphen identifies the top two pins of the socket - in my inital design there's a hardware fault on those pins so I dont put the chip in the top position. *"-"* is only relevant if using the original hardware. In the later revision this bug is corrected by using different pins for the first row of the ZIF socket.|*no-op*
 
-**Example**: The test case *"111G/HHHV"* would mean, test an 8 pin chip with pins 1-3 all as inputs set to logic 1, pin 4 will be the GND pin, pin 8 is Vcc, and we expect pins 5,6,7 to be outputs with logic high.
 
-An interesting test case is to leave the ZIF socket empty, apply a "1" on all test pins, then over a period of seconds  sample the 24 tests pins using *"S"* once per second. What you see is a decay of the charge on the pins over a few seconds. See the section below on stray capacitance. See also the 'decay' test case in the software.
+(An interesting test case is to leave the ZIF socket empty, apply a "1" on all test pins, then over a period of seconds  sample the 24 tests pins using *"S"* once per second. What you see is a decay of the charge on the pins over a few seconds. See the section below on stray capacitance. See also the 'decay' test case in the software.)
 
 
 Step 2: Setup the hardware
