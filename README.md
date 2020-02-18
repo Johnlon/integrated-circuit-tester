@@ -1,4 +1,4 @@
-Integrated Circuit Tester
+Integrated Circuit Tester & Exploratory Tool
 =========================
 
 This software accompanies a hardware design for an integrated circuit test and exploratory tool.
