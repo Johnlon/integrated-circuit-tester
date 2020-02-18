@@ -1,7 +1,7 @@
 Integrated Circuit Tester
 =========================
 
-This software accompanies a hardware design for an integrated circuit tester.
+This software accompanies a hardware design for an integrated circuit test and exploratory tool.
 
 Hardware design and PCB can be found on EasyEda : https://easyeda.com/john.lonergan.sharing/integrated-circuit-tester
 
