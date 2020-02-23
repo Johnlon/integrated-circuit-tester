@@ -30,11 +30,12 @@ class Zif(Frame):
 
     zifPosX = 100
     zifPosY = 0
-    options = ["?","0","1","C","L","H","Z","X","S"]
+    options = ["?","?","0","1","C","L","H","Z","X","S"]
 
     def __init__(self, parent, *args, **kwargs):
         self.pinList = []
         self.pinListIdx = []
+        self.selectedPinCodes = []
         self.testPattern=StringVar()
 
         tk.Frame.__init__(self, parent)
@@ -57,21 +58,28 @@ class Zif(Frame):
         canvas1.create_rectangle(20, 20, 40, 80, width=1, outline="black", fill="#EEE");
         canvas1.create_rectangle(18, 5, 42, 30, width=1, outline="black", fill="#EEE");
 
-        (f, self.patternField) = self.entry(canvasTop, font=("courier", 9), text="????????????/????????????", width=Zif.width, height=Zif.pinSize, textvariable=self.testPattern)
+        (f, self.patternField) = self.entry(canvasTop, font=("courier", 9), text="", width=Zif.width, height=Zif.pinSize, textvariable=self.testPattern)
         f.place(x=Zif.zifPosX, y=Zif.height+20)
 
+
+        (f,b) = self.button(canvasTop, "Test", height=30, width=50, style='W.TButton')
+        f.place(x=Zif.zifPosX + Zif.socketWidth + 30, y=25)
+
         for pin in range(0, 24):
-            (widget,l) = self.label(canvasTop, text=str(pin+1), width=Zif.pinSize, height=Zif.pinSize, style='W.TButton')
+            (widget,numlabel) = self.label(canvasTop, text=str(pin+1), width=Zif.pinSize, height=Zif.pinSize, style='W.TButton')
+            widget.place(x=self.labelPosH(pin), y=self.pinPosV(pin))
+
+            textvariable=StringVar()
+            textvariable.set("-")
+            (widget,l) = self.pin(canvasTop, textvariable=textvariable, width=Zif.pinSize, height=Zif.pinSize, style='W.TButton')
             widget.place(x=self.pinPosH(pin), y=self.pinPosV(pin))
             self.pinListIdx.append(0)
             self.pinList.append(l)
 
-            (widget, b) = self.button(canvasTop, text="p"+str(pin+1), width=Zif.pinSize, height=Zif.pinSize, style='W.TButton')
+            (widget, b) = self.optionMenu(canvasTop, width=20+Zif.pinSize, height=Zif.pinSize, pin=pin, labelvariable=textvariable)
             widget.place(x=self.buttonPosH(pin), y=self.pinPosV(pin))
-            b.bind('<Button-1>', functools.partial(self.onClick, button=b, pin=pin))
-            b.bind('<Shift-Button-1>', functools.partial(self.onShiftClick, button=b, pin=pin))
-            self.repaintButton(b, pin)
 
+        self.repaintPattern()
         canvasTop.pack()
         self.pack()
 
@@ -90,8 +98,15 @@ class Zif(Frame):
         else:
             return Zif.zifPosX + Zif.socketWidth - Zif.marginSide - Zif.buttonSize
 
+    def labelPosH(self, pin):
+        gap=1
+        if pin < 12:
+            return Zif.zifPosX + Zif.marginSide + Zif.pinSize + gap
+        else:
+            return Zif.zifPosX + Zif.socketWidth - Zif.marginSide - Zif.buttonSize - Zif.pinSize - gap
+
     def buttonPosH(self, pin):
-        gap = 20
+        gap = 40
         if pin < 12:
             return Zif.zifPosX - Zif.buttonSize - gap
         else:
@@ -106,12 +121,41 @@ class Zif(Frame):
         b.pack(fill=BOTH, expand=1)
         return (f,b)
 
+    def optionMenu(self, master, height, width, pin, labelvariable):
+
+        variable=StringVar()
+        variable.set(self.options[0])
+
+        def onClick(code):
+            print("pin %d = %s" % (pin, code))
+            labelvariable.set(code)
+            self.repaintPattern()
+
+        f = Frame(master, height=height, width=width)
+        f.pack_propagate(0) # don't shrink
+        f.pack()
+
+        b = OptionMenu(f, variable, command=onClick, *self.options)
+        b.pack(fill=BOTH, expand=1)
+
+        self.selectedPinCodes.append(variable)
+        return (f,b)
+
     def label(self, master, text, height, width, style):
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0) # don't shrink
         f.pack()
 
-        o = Label(f, text=text, style=style)
+        o = Label(f, text=text, font=("courier", 9), background="white", borderwidth=0, anchor="center")
+        o.pack(fill=BOTH, expand=1)
+        return (f,o)
+
+    def pin(self, master, textvariable, height, width, style):
+        f = Frame(master, height=height, width=width)
+        f.pack_propagate(0) # don't shrink
+        f.pack()
+
+        o = Label(f, textvariable=textvariable, style=style)
         o.pack(fill=BOTH, expand=1)
         return (f,o)
 
@@ -125,35 +169,23 @@ class Zif(Frame):
         o.pack(fill=BOTH, expand=1)
         return (f,o)
 
-
-    def onClick(self, event, button, pin):
-        print("Single Click, Button-%s pin %d for %s" % (button, pin, event))
-        label = self.pinList[pin]
-        idx = self.pinListIdx[pin];
-        idx = (idx + 1) % len(self.options)
-        self.pinListIdx[pin] = idx
-        self.repaintButton(button, pin)
-
-    def onShiftClick(self, event, button, pin):
-        print("Shift Single Click, Button-%s pin %d for %s" % (button, pin, event))
-        label = self.pinList[pin]
-        idx = self.pinListIdx[pin];
-        idx = (idx - 1) % len(self.options)
-        self.pinListIdx[pin] = idx
-        self.repaintButton(button, pin)
-
-    def repaintButton(self, button, pin):
-        idx = self.pinListIdx[pin];
-        code = Zif.options[idx]
-        button.configure(text = code)
-        self.repaintPattern()
+    #
+    # def onShiftClick(self, event, button, pin):
+    #     print("Shift Single Click, Button-%s pin %d for %s" % (button, pin, event))
+    #     label = self.pinList[pin]
+    #     idx = self.pinListIdx[pin];
+    #     idx = (idx - 1) % len(self.options)
+    #     self.pinListIdx[pin] = idx
+    #     self.repaintLabel(button, pin)
 
     def repaintPattern(self):
         pattern=""
         for pin in range(0, len(self.pinListIdx)):
-            idx = self.pinListIdx[pin];
-            code = Zif.options[idx]
-            pattern = pattern + code
+            # idx = self.pinListIdx[pin];
+            # code = Zif.options[idx]
+            code = self.selectedPinCodes[pin];
+
+            pattern = pattern + code.get()
             if pin == (self.pins/2)-1:
                 pattern = pattern + "/"
         self.testPattern.set(pattern)
