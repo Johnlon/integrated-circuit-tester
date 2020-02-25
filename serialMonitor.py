@@ -108,7 +108,13 @@ class TesterInterface():
             while (1):
                 resp = msg.decode("utf-8")  # .strip()
                 if (len(resp) > 0):
-                    self.responseHandler(resp)
+                    try:
+                        self.responseHandler(resp)
+                    except Exception as e:
+                        print("ERR in response handler for '%s'" % resp)
+                        print("ERR: %s" % type(e) , e)
+                        sys.stdout.flush()
+
                     sys.stdout.flush()
                 msg = self.ard.readline()
         except BaseException as x:

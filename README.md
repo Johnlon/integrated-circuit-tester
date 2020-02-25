@@ -321,6 +321,35 @@ NB. Make sure the baud rate in the console matches the program.
 
 I used the Arduino Nano and this doesn't support a file system so I can't include an onboard file with the test cases. Instead, I compile these into the Arduino program (sketch).
 
+More Software
+=============
+
+There are three options for communicating with the on-board arduino.
+As well as conecting to it using the Arduino IDE serial monitor (or other 3rd party ide or term ) there are two options included with this distribution;
+ these options are *serialMonitor.py* and *gui.py*.
+ 
+_serialMonitor.py_ is a command line serial monitor that has the convenience of working like a terminal with `readline` support.
+
+_gui.py_ provides a graphical interface for the device.
+
+Setting up Python
+-------
+
+```python
+pip3 install pyserial
+pip3 install pyreadline
+
+I had this setup ...
+
+> pip list
+Package    Version
+---------- -------
+pip        19.0.3
+pyreadline 2.1
+pyserial   3.4
+setuptools 40.8.0
+```
+
 Other databases of tests
 ===============
 

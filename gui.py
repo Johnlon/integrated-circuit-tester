@@ -2,8 +2,10 @@ import tkinter as tk
 from tkinter import *
 import functools
 from tkinter.ttk import *
+from tkinter.messagebox import showerror
 
 from serialMonitor import TesterInterface, loadDefault, saveDefault
+
 
 def quit(event):
     print("Double Click, so let's stop")
@@ -12,9 +14,12 @@ def quit(event):
 
 
 class Zif(Frame):
+    USE_v1_HACK = True
+
     socketWidth = 200
 
     pins = 24
+
     rows = pins / 2
 
     pitchVert = 30
@@ -44,8 +49,10 @@ class Zif(Frame):
     surfaceCol = "#F7F7F7"
 
     def __init__(self, parent, *args, **kwargs):
-        self.pinLabels = []
-        self.pinCodes = []
+        self.pinLabels = {}
+        self.pinControls = {}
+        self.pinCodes = {}
+        self.serialMon = None
         self.testPattern = StringVar()
         self.autoTest = BooleanVar()
 
@@ -60,20 +67,23 @@ class Zif(Frame):
                            highlightthickness=0)
         canvasTop.pack(side=LEFT, padx=10, pady=20)
 
-        canvasTop.create_rectangle(Zif.zifPosX+2, Zif.zifPosY+55, Zif.zifPosX+Zif.socketWidth, Zif.zifPosY+Zif.height, width=1, outline="black", fill=Zif.surfaceCol);
-        canvasTop.create_rectangle(Zif.zifPosX+20, Zif.zifPosY+20, Zif.zifPosX+40, Zif.zifPosY+80, width=1, outline="black", fill="#EEE");
-        canvasTop.create_rectangle(Zif.zifPosX+18, Zif.zifPosY+5, Zif.zifPosX+42, Zif.zifPosY+30, width=1, outline="black", fill="#EEE");
+        canvasTop.create_rectangle(Zif.zifPosX + 2, Zif.zifPosY + 55, Zif.zifPosX + Zif.socketWidth,
+                                   Zif.zifPosY + Zif.height, width=1, outline="black", fill=Zif.surfaceCol);
+        canvasTop.create_rectangle(Zif.zifPosX + 20, Zif.zifPosY + 20, Zif.zifPosX + 40, Zif.zifPosY + 80, width=1,
+                                   outline="black", fill="#EEE");
+        canvasTop.create_rectangle(Zif.zifPosX + 18, Zif.zifPosY + 5, Zif.zifPosX + 42, Zif.zifPosY + 30, width=1,
+                                   outline="black", fill="#EEE");
 
         self.patternField(canvasTop)
         self.testButton(canvasTop)
         self.autoCheckbox(canvasTop)
 
-        for pin in range(0, 24):
+        for pin in range(0, self.pins):
             self.label(canvasTop, x=self.labelPosH(pin), y=self.pinPosV(pin), text=str(pin + 1), width=Zif.labelSize,
                        height=Zif.labelSize)
 
             self.pin(canvasTop, x=self.pinPosH(pin), y=self.pinPosV(pin),
-                     width=Zif.pinWidth, height=Zif.pinHeight)
+                     width=Zif.pinWidth, height=Zif.pinHeight, pin=pin)
 
             self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
                             width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
@@ -83,30 +93,30 @@ class Zif(Frame):
         self.pack()
 
     def rowOfPin(self, pin):
-        if pin < 12:
+        if pin < (self.pins / 2):
             return pin
         else:
-            return 24 - pin - 1
+            return self.pins - pin - 1
 
     def pinPosV(self, pin):
         return Zif.marginTop + (self.pitchVert * self.rowOfPin(pin))
 
     def pinPosH(self, pin):
-        if pin < 12:
+        if pin < (self.pins / 2):
             return Zif.zifPosX + Zif.marginSide
         else:
             return Zif.zifPosX + Zif.socketWidth - Zif.marginSide - Zif.pinWidth
 
     def labelPosH(self, pin):
         gap = 1
-        if pin < 12:
+        if pin < (self.pins / 2):
             return Zif.zifPosX + Zif.marginSide + Zif.pinWidth + gap
         else:
             return Zif.zifPosX + Zif.socketWidth - Zif.marginSide - Zif.labelSize - Zif.pinWidth - gap
 
     def selectorPosH(self, pin):
         gap = 20
-        if pin < 12:
+        if pin < (self.pins / 2):
             return Zif.zifPosX - Zif.selectorSize - gap
         else:
             return Zif.zifPosX + Zif.socketWidth + gap
@@ -145,13 +155,15 @@ class Zif(Frame):
         f.pack()
         f.place(x=x, y=y)
 
-        variable = StringVar()
-        b = OptionMenu(f, variable, "?", command=onClick, style='W.TButton', *self.options)
-        b["menu"].config( bg="white" , activebackground="red", selectcolor="green")
-        # print(b.keys())
-        b.pack(fill=BOTH, expand=1)
-
-        self.pinCodes.append(variable)
+        if self.USE_v1_HACK and (pin == 0 or pin == 23):
+            o = Label(f, text="-", font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
+            o.pack(fill=BOTH, expand=1)
+        else:
+            variable = StringVar()
+            b = OptionMenu(f, variable, "?", command=onClick, style='W.TButton', *self.options)
+            b["menu"].config(bg="white", activebackground="red", selectcolor="green")
+            b.pack(fill=BOTH, expand=1)
+            self.pinCodes[pin] = variable
 
     def label(self, master, x, y, text, height, width):
         f = Frame(master, height=height, width=width)
@@ -162,7 +174,7 @@ class Zif(Frame):
         o = Label(f, text=text, font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
         o.pack(fill=BOTH, expand=1)
 
-    def pin(self, master, x, y, height, width):
+    def pin(self, master, x, y, height, width, pin):
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0)  # don't shrink
         f.pack()
@@ -170,11 +182,13 @@ class Zif(Frame):
 
         pinLabelVariable = StringVar()
         pinLabelVariable.set("")
-        self.pinLabels.append(pinLabelVariable)
 
         o = Label(f, textvariable=pinLabelVariable, font=("courier", 9), background="#DDD", borderwidth=2,
                   relief="solid", anchor="center")
         o.pack(fill=BOTH, expand=1)
+
+        self.pinLabels[pin] = pinLabelVariable
+        self.pinControls[pin] = o
 
     def patternField(self, master):
         f = Frame(master, width=Zif.width, height=Zif.patternHeight)
@@ -193,20 +207,55 @@ class Zif(Frame):
 
     def repaintPattern(self):
         pattern = ""
-        for pin in range(0, 24):
-            code = self.pinCodes[pin].get()
+
+        start = 0
+        end = self.pins
+
+        if self.USE_v1_HACK:
+            start = 1
+            end = 23
+
+        for pin in sorted(self.pinCodes.keys()):
+            pinVar = self.pinCodes[pin]
+            code = pinVar.get()
             pattern = pattern + code
-            if pin == (self.pins / 2) - 1:
+            if pin == (len(self.pinCodes) / 2):
                 pattern = pattern + "/"
         self.testPattern.set(pattern)
 
     def runTest(self):
-        print("testing")
-        self.paintResult("ABCDEFGHIJKLMNlksdjflksdjflksjdflkj")
+        self.serialMon.writeToTester("t:" + self.testPattern.get())
 
     def paintResult(self, result):
-        for ipin in range(0,24):
-            self.pinLabels[ipin].set(result[ipin])
+        if result.startswith("ERROR"):
+            showerror(title="Error Response", message=result)
+        elif result.startswith("PASS"):
+            pass
+        elif result.startswith("RESULT"):
+            resp = result.replace("RESULT : ", "").strip()
+            for ipin in range(0, self.pins):
+                incode = "-"
+                if ipin in self.pinCodes:
+                    incode = self.pinCodes[ipin].get()
+                code = resp[ipin]
+                if code == "-":
+                    # not a pin
+                    self.pinControls[ipin].configure(background="gray95")
+                elif code == "_":
+                    # was in input
+                    code = incode
+                    self.pinControls[ipin].configure(background="white")
+                elif code == ".":
+                    # was ok
+                    code = incode
+                    self.pinControls[ipin].configure(background="pale green")
+                else: # might be ok cos this could be a "S" or "?"
+                    color="yellow"
+                    if incode in "HLZ": # was an assertion to not ok
+                        color="red"
+                    self.pinControls[ipin].configure(background=color)
+
+                self.pinLabels[ipin].set(code)
 
 
 def main():
@@ -215,7 +264,14 @@ def main():
     root.title("Exploratory Tool")
 
     ex = Zif(root)
+
+    tester = TesterInterface(serialPort="com6")
     ex.pack(side=LEFT)
+
+    ex.serialMon = tester
+    tester.responseHandler = ex.paintResult
+
+    tester.open()
 
     # ex.place(y=60)
     ex.pack()
