@@ -4,9 +4,8 @@ import functools
 import tkinter.ttk as ttk
 from tkinter.ttk import *
 from tkinter.messagebox import showerror
-
-from serialMonitor import TesterInterface, loadDefault, saveDefault
-
+import serial
+import threading
 
 def quit(event):
     print("Double Click, so let's stop")
@@ -73,23 +72,28 @@ class Zif(Frame):
 
     surfaceCol = "#EEE"
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, serialMon, *args, **kwargs):
         self.pinLabels = {}
         self.pinControls = {}
         self.pinCodes = {}
-        self.serialMon = None
         self.testPattern = StringVar()
         self.autoTest = BooleanVar()
         self.autoTest.set(True)
 
+        self.comPort = StringVar()
+        self.serMon = None
+
         tk.Frame.__init__(self, parent)
         self.initUI()
 
+        self.responseHandler = self.paintResult
+
     def initUI(self):
 
-        self.config(height=Zif.height, width=Zif.width, background="white", borderwidth=0, highlightthickness=0)
+        spaceUnderZif = 100
+        self.config(height=Zif.height + spaceUnderZif, width=Zif.width, background="white", borderwidth=0, highlightthickness=0)
 
-        canvasTop = Canvas(self, height=Zif.height + 50, width=Zif.width * 2, background="white", borderwidth=1,
+        canvasTop = Canvas(self, height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white", borderwidth=1,
                            highlightthickness=0)
         canvasTop.pack(side=LEFT, padx=10, pady=20)
 
@@ -101,6 +105,7 @@ class Zif(Frame):
                                    outline="black", fill="#EEE");
 
         self.patternField(canvasTop)
+        self.portSelector(canvasTop)
         self.testButton(canvasTop)
         self.autoCheckbox(canvasTop)
 
@@ -123,6 +128,16 @@ class Zif(Frame):
         self.pack(fill=BOTH, expand=1)
 
         self.repaintPattern()
+
+    def _startResponseThread(self):
+
+        if not self.ard:
+            raise Exception("Tester port not open")
+
+        # thread to read and print data from arduino
+        sinput_thread = threading.Thread(target=self._serialRead)
+        sinput_thread.daemon = True
+        sinput_thread.start()
 
     def writeLog(self, txt):
         self.comms.txt.insert(tk.END, txt)
@@ -235,6 +250,23 @@ class Zif(Frame):
                   justify=CENTER)
         o.pack(fill=BOTH, expand=1)
 
+    def portSelector(self, master):
+        f = Frame(master, width=Zif.width, height=Zif.patternHeight)
+        f.pack_propagate(0)  # don't shrink
+        f.pack()
+        f.place(x=Zif.zifPosX, y=Zif.height + 60)
+
+
+        def onClick(value):
+            self.reconnect(value)
+
+        ports = ["com5","com6"]
+        lastPort = "choose port"
+
+        b = OptionMenu(f, self.comPort, lastPort, command=onClick, *ports)
+        b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
+        b.pack(fill=BOTH, expand=1)
+
     def repaintPattern(self):
         pattern = ""
 
@@ -290,6 +322,49 @@ class Zif(Frame):
 
                 self.pinLabels[ipin].set(code)
 
+    def ser(self):
+        with self.lock:
+            if self.serMon == None:
+                if self.comPort.get():
+                    print("Reconnecting")
+                    newSer = serial.Serial(self.comPort.get() , timeout = 2)
+                    newSer.parity = "O"
+                    newSer.bytesize = 7
+
+                    self.serMon = newSer
+                else:
+                    return None
+
+            return self.serMon
+
+    def _serialRead(self):
+
+        ser = None
+
+        while(True):
+            try:
+                if(ser == None):
+                    ser = serial.Serial(self.comPort , timeout = 2)
+
+                    ser.parity = "O"
+                    ser.bytesize = 7
+
+                    print("Reconnecting")
+
+                l = ser.readline()
+                while len(l) > 0:
+                    print(":" + l.decode("utf-8").strip())
+                    l = ser.readline()
+
+            except BaseException as e:
+                if(not(ser == None)):
+                    ser.close()
+                    ser = None
+                    print("Disconnecting")
+
+                print("No Connection", e)
+                time.sleep(2)
+
 
 def main():
     root = Tk()
@@ -298,13 +373,6 @@ def main():
 
     ex = Zif(root)
     ex.pack()
-
-    tester = TesterInterface(serialPort="com6")
-
-    ex.serialMon = tester
-    tester.responseHandler = ex.paintResult
-
-    tester.open()
 
     # root.geometry("600x450+150+150")
 

@@ -17,7 +17,7 @@ try:
 except ImportError:
     import pyreadline as readline
 
-def loadDefault():
+def loadLastSerialPortConf():
     try:
         with open(home + "/.ictester") as f:
             content = f.readlines()
@@ -29,13 +29,13 @@ def loadDefault():
     except:
         pass
 
-def saveDefault(comNum):
+def saveSerialPortConf(comNum):
     with open(home + "/.ictester", "w") as f:
         f.write(comNum)
 
 
 def selectPort():
-    default = loadDefault()
+    default = loadLastSerialPortConf()
 
     print("serial port number [%s] ? " % default, end="")
     sys.stdout.flush()
@@ -49,7 +49,7 @@ def selectPort():
         print("must select port")
         return selectPort()
 
-    saveDefault(com)
+    saveSerialPortConf(com)
 
     if com.isdigit():
         if (platform.system() == "Linux"):
@@ -66,25 +66,39 @@ class TesterInterface():
 
     def _recvResponse(resp):
         print("%s" % resp, end='')
+        sys.stdout.flush()
 
-    def __init__(self, serialPort, responseHandler = _recvResponse, *args, **kwargs):
-
-        self.responseHandler = responseHandler
+    def __init__(self, *args, **kwargs):
+        self.responseHandler = None
         self.ard = None
+        self.serialThreadRunning = False
 
-        self.port = serialPort
+    def open(self, serialPort, responseHandler = _recvResponse):
+        self.responseHandler = responseHandler
 
-    def open(self):
-        print("opening " + self.port)
-        self.ard = Serial(self.port, 9600, timeout=0.05)
-        print("opened " + self.port)
-        self._startThreads()
+        self.responseHandler("opening " + serialPort + "\n")
+        if self.ard:
+            try:
+                self.ard.cancel_read()
+                self.ard.close()
+
+            except BaseException as e:
+                self.responseHandler(str(e))
+
+            time.sleep(1)
+
+        self.ard = Serial(serialPort, 9600, timeout=1)
+        self.ard.parity = "O"
+        self.ard.bytesize = 7
+
+        self.responseHandler("opened " + serialPort + "\n")
+        self.startResponseThread()
 
     def close(self):
         self.ard.close()
-        sys.stdin.close()
 
     def _keyboardInput(self):
+
         try:
             while True:
                 line = sys.stdin.readline().strip()
@@ -103,26 +117,25 @@ class TesterInterface():
             _exit(1)
 
     def _readSerial(self):
-        try:
-            msg = self.ard.readline()
-            while (1):
-                resp = msg.decode("utf-8")  # .strip()
-                if (len(resp) > 0):
-                    try:
-                        self.responseHandler(resp)
-                    except Exception as e:
-                        print("ERR in response handler for '%s'" % resp)
-                        print("ERR: %s" % type(e) , e)
-                        sys.stdout.flush()
-
-                    sys.stdout.flush()
+        self.serialThreadRunning = True
+        current = self.ard
+        while self.ard and self.ard == current:
+            msg = None
+            try:
                 msg = self.ard.readline()
-        except BaseException as x:
-            print("ERR ON SERIAL\n")
-            print(x)
-            _exit(1)
+                msg = msg.decode("utf-8")  # .strip()
+            except BaseException as e:
+                self.responseHandler("ERR: while reading from arduino : %s %s\n" % (type(e), str(e)))
+                if msg:
+                    self.responseHandler("ERR: read '%s' + \n" % msg)
+                break
 
-    def _startThreads(self):
+            if msg and (len(msg) > 0):
+                self.responseHandler(msg)
+
+        self.serialThreadRunning = False
+
+    def startKeyboardThread(self):
 
         if not self.ard:
             raise Exception("Tester port not open")
@@ -132,34 +145,48 @@ class TesterInterface():
         input_thread.daemon = False
         input_thread.start()
 
+    def startResponseThread(self):
+
+        if not self.ard:
+            raise Exception("Tester port not open")
+
         # thread to read and print data from arduino
         sinput_thread = threading.Thread(target=self._readSerial)
         sinput_thread.daemon = True
         sinput_thread.start()
 
     def writeToTester(self, testcase):
-        self.ard.write(testcase.encode("utf-8"))
-        self.ard.write("\n".encode("utf-8"))
-
+        try:
+            self.ard.write(testcase.encode("utf-8"))
+            self.ard.write("\n".encode("utf-8"))
+        except BaseException as x:
+            self.responseHandler("EXCEPTION : " + str(x))
 
 
 # Support for CTRL-C needs main thread still running.
 # This is actually a crucial step, otherwise all signals sent to your program will be ignored.
-# Adding an infinite loop using time.sleep() after the threads have been started will do the trick: 
-def recvResponse(resp):
-    print("%s" % resp, end='')
-
-
+# Adding an infinite loop using time.sleep() after the threads have been started will do the trick:
 def main():
     com = selectPort()
 
-    tester = TesterInterface(serialPort=com)
+    tester = TesterInterface()
 
     try:
-        tester.open();
+        tester.open(serialPort=com)
+        tester.startKeyboardThread()
 
         while True:
-            time.sleep(1)
+            if not tester.serialThreadRunning:
+                print("reopening..")
+                try:
+                    tester.close()
+                    tester.open(serialPort=com)
+                    tester.startResponseThread()
+                except BaseException as e:
+                    pass
+                    #print("error while reopening", e)
+
+        time.sleep(1)
     except KeyboardInterrupt:
         _exit(1)
     except BaseException as x:
