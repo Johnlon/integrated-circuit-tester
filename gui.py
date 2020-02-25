@@ -17,7 +17,6 @@ def quit(event):
 class TextScrollCombo(ttk.Frame):
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         # ensure a consistent GUI size
@@ -34,6 +33,7 @@ class TextScrollCombo(ttk.Frame):
         scrollb = ttk.Scrollbar(self, command=self.txt.yview)
         scrollb.grid(row=0, column=1, sticky='nsew')
         self.txt['yscrollcommand'] = scrollb.set
+
 
 class Zif(Frame):
     USE_v1_HACK = True
@@ -55,7 +55,7 @@ class Zif(Frame):
     pinHeight = 25
     pinWidth = 50
 
-    selectorSize = 25
+    selectorSize = 45  # width fine tuned to only show first letter of selection when collapsed
     selectorHeight = 25
     patternHeight = 30
 
@@ -66,9 +66,12 @@ class Zif(Frame):
 
     zifPosX = 100
     zifPosY = 0
-    options = ["?", "0", "1", "V", "G", "C", "L", "H", "Z", "X", "S"]
+    testOption = "?  Test"
+    options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
+               "X  don't care",
+               testOption, "S  sample"]
 
-    surfaceCol = "#F7F7F7"
+    surfaceCol = "#EEE"
 
     def __init__(self, parent, *args, **kwargs):
         self.pinLabels = {}
@@ -77,6 +80,7 @@ class Zif(Frame):
         self.serialMon = None
         self.testPattern = StringVar()
         self.autoTest = BooleanVar()
+        self.autoTest.set(True)
 
         tk.Frame.__init__(self, parent)
         self.initUI()
@@ -87,12 +91,12 @@ class Zif(Frame):
 
         canvasTop = Canvas(self, height=Zif.height + 50, width=Zif.width * 2, background="white", borderwidth=1,
                            highlightthickness=0)
-        canvasTop.pack(side=LEFT,padx=10, pady=20)
+        canvasTop.pack(side=LEFT, padx=10, pady=20)
 
         canvasTop.create_rectangle(Zif.zifPosX + 2, Zif.zifPosY + 55, Zif.zifPosX + Zif.socketWidth,
                                    Zif.zifPosY + Zif.height, width=1, outline="black", fill=Zif.surfaceCol);
         canvasTop.create_rectangle(Zif.zifPosX + 20, Zif.zifPosY + 20, Zif.zifPosX + 40, Zif.zifPosY + 80, width=1,
-                                   outline="black", fill="#EEE");
+                                   outline="black", fill="#F7F7F7");
         canvasTop.create_rectangle(Zif.zifPosX + 18, Zif.zifPosY + 5, Zif.zifPosX + 42, Zif.zifPosY + 30, width=1,
                                    outline="black", fill="#EEE");
 
@@ -110,21 +114,19 @@ class Zif(Frame):
             self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
                             width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
 
-
         self.comms = TextScrollCombo(self, height=30, width=80)
         self.comms.txt.insert(tk.END, "Serial Log File:\n")
 
         self.comms.pack(fill=BOTH, expand=1)
         canvasTop.pack(anchor="nw")
 
-        self.pack(fill=BOTH,  expand=1)
+        self.pack(fill=BOTH, expand=1)
 
         self.repaintPattern()
 
     def writeLog(self, txt):
-        self.comms.txt.insert(tk.END,txt)
+        self.comms.txt.insert(tk.END, txt)
         self.comms.txt.see("end")
-
 
     def rowOfPin(self, pin):
         if pin < (self.pins / 2):
@@ -159,23 +161,21 @@ class Zif(Frame):
         def onClick():
             self.runTest()
 
-        xpos = Zif.zifPosX + Zif.socketWidth + 30
-        self.button(master, x=xpos, y=25, text="Test", height=30, width=50, command=onClick, style='W.TButton')
+        width = 60
+        xpos = Zif.zifPosX + Zif.socketWidth - width
 
-    def autoCheckbox(self, master):
-        xpos = Zif.zifPosX + Zif.socketWidth + 30
-        cb = tk.Checkbutton(master, text="Auto", height=1, width=3, background="white", variable=self.autoTest)
-        cb.place(x=xpos, y=25 + 30)
-
-    def button(self, master, x, y, text, height, width, command, style):
-        f = Frame(master, height=height, width=width)
+        f = Frame(master, height=30, width=width)
         f.pack_propagate(0)  # don't shrink
         f.pack()
-        f.place(x=x, y=y)
+        f.place(x=xpos, y=2)
 
-        b = Button(f, text=text, style=style, command=command)
+        b = tk.Button(f, text="Test", bg="bisque2",  command=onClick)
         b.pack(fill=BOTH, expand=1)
-        return b
+
+    def autoCheckbox(self, master):
+        xpos = Zif.zifPosX + Zif.socketWidth +10
+        cb = tk.Checkbutton(master, text="Auto", height=1, width=3,bg="white", variable=self.autoTest)
+        cb.place(x=xpos, y=4)
 
     def optionMenu(self, master, x, y, height, width, pin):
 
@@ -189,14 +189,13 @@ class Zif(Frame):
         f.pack()
         f.place(x=x, y=y)
 
-
         if self.USE_v1_HACK and (pin == 0 or pin == 23):
             o = Label(f, text="-", font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
             o.pack(fill=BOTH, expand=1)
         else:
             variable = StringVar()
-            b = OptionMenu(f, variable, "?", command=onClick, style='W.TButton', *self.options)
-            b["menu"].config(bg="white", activebackground="red", selectcolor="green")
+            b = OptionMenu(f, variable, Zif.testOption, command=onClick, *self.options)
+            b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
             b.pack(fill=BOTH, expand=1)
             self.pinCodes[pin] = variable
 
@@ -236,10 +235,6 @@ class Zif(Frame):
                   justify=CENTER)
         o.pack(fill=BOTH, expand=1)
 
-        o.configure(style="W.TButton")
-
-        return (f, o)
-
     def repaintPattern(self):
         pattern = ""
 
@@ -252,7 +247,7 @@ class Zif(Frame):
 
         for pin in sorted(self.pinCodes.keys()):
             pinVar = self.pinCodes[pin]
-            code = pinVar.get()
+            code = pinVar.get()[0]
             pattern = pattern + code
             if pin == (len(self.pinCodes) / 2):
                 pattern = pattern + "/"
@@ -274,7 +269,7 @@ class Zif(Frame):
             for ipin in range(0, self.pins):
                 incode = "-"
                 if ipin in self.pinCodes:
-                    incode = self.pinCodes[ipin].get()
+                    incode = self.pinCodes[ipin].get()[0]
                 code = resp[ipin]
                 if code == "-":
                     # not a pin
@@ -287,10 +282,10 @@ class Zif(Frame):
                     # was ok
                     code = incode
                     self.pinControls[ipin].configure(background="pale green")
-                else: # might be ok cos this could be a "S" or "?"
-                    color="yellow"
-                    if incode in "HLZ": # was an assertion to not ok
-                        color="red"
+                else:  # might be ok cos this could be a "S" or "?"
+                    color = "yellow"
+                    if incode in "HLZ":  # was an assertion to not ok
+                        color = "red"
                     self.pinControls[ipin].configure(background=color)
 
                 self.pinLabels[ipin].set(code)
@@ -310,14 +305,6 @@ def main():
     tester.responseHandler = ex.paintResult
 
     tester.open()
-
-    # ex.place(y=60)
-    ex.pack()
-
-    # ex.grid(row=0, column=0)
-    #
-    # rightCanvas = Canvas(root, background="blue",  relief='ridge')
-    # rightCanvas.grid(row=0, column=1)
 
     # root.geometry("600x450+150+150")
 
