@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 import functools
+import tkinter.ttk as ttk
 from tkinter.ttk import *
 from tkinter.messagebox import showerror
 
@@ -12,6 +13,27 @@ def quit(event):
     import sys;
     sys.exit()
 
+
+class TextScrollCombo(ttk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # ensure a consistent GUI size
+
+        # implement stretchability
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # create a Text widget
+        self.txt = tk.Text(self)
+        self.txt.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+
+        # create a Scrollbar and associate it with txt
+        scrollb = ttk.Scrollbar(self, command=self.txt.yview)
+        scrollb.grid(row=0, column=1, sticky='nsew')
+        self.txt['yscrollcommand'] = scrollb.set
 
 class Zif(Frame):
     USE_v1_HACK = True
@@ -65,7 +87,7 @@ class Zif(Frame):
 
         canvasTop = Canvas(self, height=Zif.height + 50, width=Zif.width * 2, background="white", borderwidth=1,
                            highlightthickness=0)
-        canvasTop.pack(side=LEFT, padx=10, pady=20)
+        canvasTop.pack(side=LEFT,padx=10, pady=20)
 
         canvasTop.create_rectangle(Zif.zifPosX + 2, Zif.zifPosY + 55, Zif.zifPosX + Zif.socketWidth,
                                    Zif.zifPosY + Zif.height, width=1, outline="black", fill=Zif.surfaceCol);
@@ -88,9 +110,21 @@ class Zif(Frame):
             self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
                             width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
 
+
+        self.comms = TextScrollCombo(self, height=30, width=80)
+        self.comms.txt.insert(tk.END, "Serial Log File:\n")
+
+        self.comms.pack(fill=BOTH, expand=1)
+        canvasTop.pack(anchor="nw")
+
+        self.pack(fill=BOTH,  expand=1)
+
         self.repaintPattern()
-        canvasTop.pack()
-        self.pack()
+
+    def writeLog(self, txt):
+        self.comms.txt.insert(tk.END,txt)
+        self.comms.txt.see("end")
+
 
     def rowOfPin(self, pin):
         if pin < (self.pins / 2):
@@ -154,6 +188,7 @@ class Zif(Frame):
         f.pack_propagate(0)  # don't shrink
         f.pack()
         f.place(x=x, y=y)
+
 
         if self.USE_v1_HACK and (pin == 0 or pin == 23):
             o = Label(f, text="-", font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
@@ -224,9 +259,12 @@ class Zif(Frame):
         self.testPattern.set(pattern)
 
     def runTest(self):
-        self.serialMon.writeToTester("t:" + self.testPattern.get())
+        pat = "t:" + self.testPattern.get()
+        self.writeLog("%s\n" % pat)
+        self.serialMon.writeToTester(pat)
 
     def paintResult(self, result):
+        self.writeLog("%s" % result)
         if result.startswith("ERROR"):
             showerror(title="Error Response", message=result)
         elif result.startswith("PASS"):
@@ -264,9 +302,9 @@ def main():
     root.title("Exploratory Tool")
 
     ex = Zif(root)
+    ex.pack()
 
     tester = TesterInterface(serialPort="com6")
-    ex.pack(side=LEFT)
 
     ex.serialMon = tester
     tester.responseHandler = ex.paintResult
