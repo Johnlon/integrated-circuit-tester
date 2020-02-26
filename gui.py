@@ -8,6 +8,15 @@ import serial
 import threading
 import time
 import queue
+import os
+
+if os.name == 'nt':  # sys.platform == 'win32':
+    from serial.tools.list_ports_windows import comports
+elif os.name == 'posix':
+    from serial.tools.list_ports_posix import comports
+    #~ elif os.name == 'java':
+else:
+    raise ImportError("Sorry: no implementation for your platform ('{}') available".format(os.name))
 
 
 def quit(event):
@@ -111,6 +120,7 @@ class Zif(Frame):
         self.portSelector(canvasTop)
         self.testButton(canvasTop)
         self.autoCheckbox(canvasTop)
+        self.macros(canvasTop)
 
         for pin in range(0, self.pins):
             self.label(canvasTop, x=self.labelPosH(pin), y=self.pinPosV(pin), text=str(pin + 1), width=Zif.labelSize,
@@ -172,12 +182,39 @@ class Zif(Frame):
         else:
             return Zif.zifPosX + Zif.socketWidth + gap
 
+    def macros(self, master):
+
+        def macro(text, y, code, fn=self.runTest):
+            def onClick():
+                if code:
+                    for pin in sorted(self.pinCodes.keys()):
+                        pinVar = self.pinCodes[pin]
+                        pinVar.set(code)
+                    self.repaintPattern()
+                fn()
+
+            width = 60
+            xpos = Zif.zifPosX + self.socketWidth + 20
+
+            f = Frame(master, height=20, width=width)
+            f.pack_propagate(0)  # don't shrink
+            f.pack()
+            f.place(x=xpos, y=y)
+
+            b = tk.Button(f, text=text, bg="bisque2", command=onClick)
+            b.pack(fill=BOTH, expand=1)
+
+        macro("All 1", 0, "1")
+        macro("All 0", 21, "0")
+        macro("All S", 42, "S")
+        macro("Identify", 63, None, fn=self.runIdentify)
+
     def testButton(self, master):
         def onClick():
             self.runTest()
 
         width = 60
-        xpos = Zif.zifPosX + Zif.socketWidth - width
+        xpos = Zif.zifPosX + 80
 
         f = Frame(master, height=30, width=width)
         f.pack_propagate(0)  # don't shrink
@@ -188,7 +225,7 @@ class Zif(Frame):
         b.pack(fill=BOTH, expand=1)
 
     def autoCheckbox(self, master):
-        xpos = Zif.zifPosX + Zif.socketWidth + 10
+        xpos = Zif.zifPosX + 150
         cb = tk.Checkbutton(master, text="Auto", height=1, width=3, bg="white", variable=self.autoTest)
         cb.place(x=xpos, y=4)
 
@@ -250,32 +287,36 @@ class Zif(Frame):
                   justify=CENTER)
         o.pack(fill=BOTH, expand=1)
 
-    def portSelector(self, master):
-        f = Frame(master, width=Zif.width, height=Zif.patternHeight)
-        f.pack_propagate(0)  # don't shrink
-        f.pack()
-        f.place(x=Zif.zifPosX, y=Zif.height + 60)
+    def getPorts(self):
+        iterator = sorted(comports(include_links=False))
+        ports=[]
+        for n, (port, desc, hwid) in enumerate(iterator, 1):
+            ports.append(port)
+        return ports
 
-        ports = ["com5", "com6"]
-        lastPort = "choose port"
+    def portSelector(self, master):
 
         def onClick(code):
             self.comPortVar.set(code)
 
-        ignored = StringVar()
-        b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
-        b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
-        b.pack(fill=BOTH, expand=1)
+        ports = self.getPorts()
+        if len(ports) == 1:
+            onClick(ports[0])
+        else:
+            # ports = ["com5", "com6"]
+            f = Frame(master, width=Zif.width, height=Zif.patternHeight)
+            f.pack_propagate(0)  # don't shrink
+            f.pack()
+            f.place(x=Zif.zifPosX, y=Zif.height + 60)
+
+            ignored = StringVar()
+            lastPort = "choose port"
+            b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
+            b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
+            b.pack(fill=BOTH, expand=1)
 
     def repaintPattern(self):
         pattern = ""
-
-        start = 0
-        end = self.pins
-
-        if self.USE_v1_HACK:
-            start = 1
-            end = 23
 
         for pin in sorted(self.pinCodes.keys()):
             pinVar = self.pinCodes[pin]
@@ -296,6 +337,14 @@ class Zif(Frame):
 
         pat = "t:" + self.testPattern.get()
         self.arduinoInputQueue.put(pat)
+
+    def runIdentify(self):
+            port = self.comPortVar.get()
+            if port == "":
+                self.writeLog("Port not open yet\n")
+                return
+
+            self.arduinoInputQueue.put("i")
 
     def paintResult(self, result):
         self.writeLog("%s" % result)
@@ -352,7 +401,7 @@ class Zif(Frame):
                         ser = serial.Serial(port, timeout=0.05)
 
                         # give arduino a chance to respond
-                        time.sleep(2)
+                        time.sleep(0.1)
 
                     l = ser.readline()
                     while len(l) > 0:
@@ -378,7 +427,7 @@ class Zif(Frame):
                     ser = None
                 else:
                     self.writeLog("No Connection: %s\n" % str(e))
-                    time.sleep(5)
+                    time.sleep(2)
 
 
 def main():
