@@ -6,6 +6,9 @@ from tkinter.ttk import *
 from tkinter.messagebox import showerror
 import serial
 import threading
+import time
+import queue
+
 
 def quit(event):
     print("Double Click, so let's stop")
@@ -32,7 +35,6 @@ class TextScrollCombo(ttk.Frame):
         scrollb = ttk.Scrollbar(self, command=self.txt.yview)
         scrollb.grid(row=0, column=1, sticky='nsew')
         self.txt['yscrollcommand'] = scrollb.set
-
 
 class Zif(Frame):
     USE_v1_HACK = True
@@ -65,14 +67,14 @@ class Zif(Frame):
 
     zifPosX = 100
     zifPosY = 0
-    testOption = "?  Test"
+    testOption = "S  Sample"
     options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
                "X  don't care",
-               testOption, "S  sample"]
+               "?  test", "S  sample"]
 
     surfaceCol = "#EEE"
 
-    def __init__(self, parent, serialMon, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         self.pinLabels = {}
         self.pinControls = {}
         self.pinCodes = {}
@@ -80,20 +82,21 @@ class Zif(Frame):
         self.autoTest = BooleanVar()
         self.autoTest.set(True)
 
-        self.comPort = StringVar()
-        self.serMon = None
+        self.comPortVar = StringVar()
+        self.arduinoInputQueue = queue.Queue()
 
         tk.Frame.__init__(self, parent)
         self.initUI()
-
-        self.responseHandler = self.paintResult
+        self.startResponseThread()
 
     def initUI(self):
 
         spaceUnderZif = 100
-        self.config(height=Zif.height + spaceUnderZif, width=Zif.width, background="white", borderwidth=0, highlightthickness=0)
+        self.config(height=Zif.height + spaceUnderZif, width=Zif.width, background="white", borderwidth=0,
+                    highlightthickness=0)
 
-        canvasTop = Canvas(self, height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white", borderwidth=1,
+        canvasTop = Canvas(self, height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white",
+                           borderwidth=1,
                            highlightthickness=0)
         canvasTop.pack(side=LEFT, padx=10, pady=20)
 
@@ -119,23 +122,20 @@ class Zif(Frame):
             self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
                             width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
 
-        self.comms = TextScrollCombo(self, height=30, width=80)
+        # right hand log pane
+        self.comms = TextScrollCombo(self, height=30, width=40)
         self.comms.txt.insert(tk.END, "Serial Log File:\n")
-
         self.comms.pack(fill=BOTH, expand=1)
+
+        #
         canvasTop.pack(anchor="nw")
-
         self.pack(fill=BOTH, expand=1)
-
         self.repaintPattern()
 
-    def _startResponseThread(self):
-
-        if not self.ard:
-            raise Exception("Tester port not open")
+    def startResponseThread(self):
 
         # thread to read and print data from arduino
-        sinput_thread = threading.Thread(target=self._serialRead)
+        sinput_thread = threading.Thread(target=self.serialLoop)
         sinput_thread.daemon = True
         sinput_thread.start()
 
@@ -184,12 +184,12 @@ class Zif(Frame):
         f.pack()
         f.place(x=xpos, y=2)
 
-        b = tk.Button(f, text="Test", bg="bisque2",  command=onClick)
+        b = tk.Button(f, text="Test", bg="bisque2", command=onClick)
         b.pack(fill=BOTH, expand=1)
 
     def autoCheckbox(self, master):
-        xpos = Zif.zifPosX + Zif.socketWidth +10
-        cb = tk.Checkbutton(master, text="Auto", height=1, width=3,bg="white", variable=self.autoTest)
+        xpos = Zif.zifPosX + Zif.socketWidth + 10
+        cb = tk.Checkbutton(master, text="Auto", height=1, width=3, bg="white", variable=self.autoTest)
         cb.place(x=xpos, y=4)
 
     def optionMenu(self, master, x, y, height, width, pin):
@@ -256,14 +256,14 @@ class Zif(Frame):
         f.pack()
         f.place(x=Zif.zifPosX, y=Zif.height + 60)
 
-
-        def onClick(value):
-            self.reconnect(value)
-
-        ports = ["com5","com6"]
+        ports = ["com5", "com6"]
         lastPort = "choose port"
 
-        b = OptionMenu(f, self.comPort, lastPort, command=onClick, *ports)
+        def onClick(code):
+            self.comPortVar.set(code)
+
+        ignored = StringVar()
+        b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
         b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
         b.pack(fill=BOTH, expand=1)
 
@@ -281,21 +281,26 @@ class Zif(Frame):
             pinVar = self.pinCodes[pin]
             code = pinVar.get()[0]
             pattern = pattern + code
-            if pin == (len(self.pinCodes) / 2):
-                pattern = pattern + "/"
-        self.testPattern.set(pattern)
+
+        half = int(len(pattern)/2)
+        split1 = pattern[0:half]
+        split2 = pattern[half: len(pattern)]
+        cut = split1 + "/" + split2
+        self.testPattern.set(cut)
 
     def runTest(self):
+        port = self.comPortVar.get()
+        if port == "":
+            self.writeLog("Port not open yet\n")
+            return
+
         pat = "t:" + self.testPattern.get()
-        self.writeLog("%s\n" % pat)
-        self.serialMon.writeToTester(pat)
+        self.arduinoInputQueue.put(pat)
 
     def paintResult(self, result):
         self.writeLog("%s" % result)
         if result.startswith("ERROR"):
             showerror(title="Error Response", message=result)
-        elif result.startswith("PASS"):
-            pass
         elif result.startswith("RESULT"):
             resp = result.replace("RESULT : ", "").strip()
             for ipin in range(0, self.pins):
@@ -322,48 +327,58 @@ class Zif(Frame):
 
                 self.pinLabels[ipin].set(code)
 
-    def ser(self):
-        with self.lock:
-            if self.serMon == None:
-                if self.comPort.get():
-                    print("Reconnecting")
-                    newSer = serial.Serial(self.comPort.get() , timeout = 2)
-                    newSer.parity = "O"
-                    newSer.bytesize = 7
-
-                    self.serMon = newSer
-                else:
-                    return None
-
-            return self.serMon
-
-    def _serialRead(self):
+    def serialLoop(self):
 
         ser = None
+        current = self.comPortVar.get()
+        if "" == current:
+            self.writeLog("Port not open yet\n")
 
-        while(True):
+        while True:
             try:
-                if(ser == None):
-                    ser = serial.Serial(self.comPort , timeout = 2)
+                port = self.comPortVar.get()
+                if port == "":
+                    time.sleep(0.1)
+                    continue
 
-                    ser.parity = "O"
-                    ser.bytesize = 7
+                if port != current:
+                    current = port
+                    if ser:
+                        ser.close()
+                    ser = None
+                else:
+                    if ser is None:
+                        self.writeLog("Connecting: %s\n" % port)
+                        ser = serial.Serial(port, timeout=0.05)
 
-                    print("Reconnecting")
+                        # give arduino a chance to respond
+                        time.sleep(2)
 
-                l = ser.readline()
-                while len(l) > 0:
-                    print(":" + l.decode("utf-8").strip())
                     l = ser.readline()
+                    while len(l) > 0:
+                        line = l.decode("utf-8")
+                        self.paintResult(line)
+                        l = ser.readline()
+
+                    # only send one line at a time then process all responses
+                    if not self.arduinoInputQueue.empty():
+                        w = self.arduinoInputQueue.get()
+                        self.writeLog(w.strip() + "\n")
+                        ser.write(w.encode("utf-8"))
+                        ser.write("\n".encode("utf-8"))
+
+                        # wait for some response
+                        while ser.in_waiting == 0:
+                            time.sleep(0.05)
 
             except BaseException as e:
-                if(not(ser == None)):
+                if ser is not None:
+                    self.writeLog("Disconnecting: %s\n" % str(e))
                     ser.close()
                     ser = None
-                    print("Disconnecting")
-
-                print("No Connection", e)
-                time.sleep(2)
+                else:
+                    self.writeLog("No Connection: %s\n" % str(e))
+                    time.sleep(5)
 
 
 def main():
