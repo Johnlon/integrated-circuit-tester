@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import *
-import functools
 import tkinter.ttk as ttk
 from tkinter.ttk import *
 from tkinter.messagebox import showerror
