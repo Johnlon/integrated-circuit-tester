@@ -1,3 +1,5 @@
 .idea/
 /venv*/
 /.vscode/
+/gui.py.bak
+/integrated-circuit-tester.iml
