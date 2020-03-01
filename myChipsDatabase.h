@@ -4,7 +4,7 @@
 static const char CHIP_EMPTY[] PROGMEM = ("EMPTY:Empty ZIF"  \
                     ":ZZZZZZZZZZ/ZZZZZZZZZZ:Empty");
 
-static const char CHIP_x74245[] PROGMEM = ("74245:Transceiver 8 bit" \
+static const char CHIP_x74245[] PROGMEM = ("74245:Transceiver 8 bit, tristate outputs" \
                   ":XZZZZZZZZG/ZZZZZZZZ1V:OE disabled"  \
                   ":100000000G/LLLLLLLL0V:A to B all low" \
                   ":111111111G/HHHHHHHH0V:A to B all high" \

@@ -18,6 +18,45 @@ else:
     raise ImportError("Sorry: no implementation for your platform ('{}') available".format(os.name))
 
 
+class MyOptionMenu(Menubutton):
+    """OptionMenu which allows the user to select a value from a menu."""
+
+    def __init__(self, master, variable, value, *values, **kwargs):
+        """Construct an optionmenu widget with the parent MASTER, with
+        the resource textvariable set to VARIABLE, the initially selected
+        value VALUE, the other menu values VALUES and an additional
+        keyword argument command."""
+        kw = {"borderwidth": 2, "textvariable": variable,
+              "indicatoron": 1, "relief": RAISED, "anchor": "c",
+              "highlightthickness": 2}
+        Widget.__init__(self, master, "menubutton", kw)
+        self.widgetName = 'tk_optionMenu'
+        menu = self.__menu = Menu(self, name="menu", tearoff=0)
+        self.menuname = menu._w
+        # 'command' is the only supported keyword
+        callback = kwargs.get('command')
+        if 'command' in kwargs:
+            del kwargs['command']
+        if kwargs:
+            raise TclError('unknown option -'+kwargs.keys()[0])
+        menu.add_command(label=value,
+                         command=tk._setit(variable, value, callback))
+        for v in values:
+            menu.add_command(label=v,
+                             command=tk._setit(variable, v, callback))
+        self["menu"] = menu
+
+    def __getitem__(self, name):
+        if name == 'menu':
+            return self.__menu
+        return Widget.__getitem__(self, name)
+
+    def destroy(self):
+        """Destroy this widget and the associated menu."""
+        Menubutton.destroy(self)
+        self.__menu = None
+
+
 def quit(event):
     print("Double Click, so let's stop")
     import sys;
@@ -74,11 +113,12 @@ class Zif(Frame):
     width = 200
 
     zifPosX = 100
-    zifPosY = 0
-    testOption = "S  Sample"
+    zifPosY = 30
+
+    defaultOption = "S  Sample"
     options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
                "X  don't care",
-               "?  test", "S  sample"]
+               "?  test", defaultOption]
 
     surfaceCol = "#EEE"
 
@@ -99,7 +139,7 @@ class Zif(Frame):
 
     def initUI(self):
 
-        spaceUnderZif = 100
+        spaceUnderZif = self.zifPosY + 100
         self.config(height=Zif.height + spaceUnderZif, width=Zif.width, background="white", borderwidth=0,
                     highlightthickness=0)
 
@@ -122,14 +162,14 @@ class Zif(Frame):
         self.macros(canvasTop)
 
         for pin in range(0, self.pins):
-            self.label(canvasTop, x=self.labelPosH(pin), y=self.pinPosV(pin), text=str(pin + 1), width=Zif.labelSize,
-                       height=Zif.labelSize)
+            self.pinNumLabel(canvasTop, x=self.labelPosH(pin), y=self.pinPosV(pin), text=str(pin + 1),
+                    width=Zif.labelSize, height=Zif.labelSize)
 
             self.pin(canvasTop, x=self.pinPosH(pin), y=self.pinPosV(pin),
                      width=Zif.pinWidth, height=Zif.pinHeight, pin=pin)
 
             self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
-                            width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
+                    width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
 
         # right hand log pane
         self.comms = TextScrollCombo(self, height=30, width=40)
@@ -159,7 +199,7 @@ class Zif(Frame):
             return self.pins - pin - 1
 
     def pinPosV(self, pin):
-        return Zif.marginTop + (self.pitchVert * self.rowOfPin(pin))
+        return self.zifPosY + Zif.marginTop + (self.pitchVert * self.rowOfPin(pin))
 
     def pinPosH(self, pin):
         if pin < (self.pins / 2):
@@ -187,8 +227,7 @@ class Zif(Frame):
             def onClick():
                 if code:
                     for pin in sorted(self.pinCodes.keys()):
-                        pinVar = self.pinCodes[pin]
-                        pinVar.set(code)
+                        self.pinCodes[pin].set(code)
                     self.repaintPattern()
                 fn()
 
@@ -203,10 +242,12 @@ class Zif(Frame):
             b = tk.Button(f, text=text, bg="bisque2", command=onClick)
             b.pack(fill=BOTH, expand=1)
 
-        macro("All 1", 0, "1")
-        macro("All 0", 21, "0")
-        macro("All S", 42, "S")
-        macro("Identify", 63, None, fn=self.runIdentify)
+        ypos=0
+        macro("All 1", ypos+0, "1")
+        macro("All 0", ypos+21, "0")
+        macro("All S", ypos+42, "S")
+        macro("All Z", ypos+63, "Z")
+        macro("Identify", ypos+84, None, fn=self.runIdentify)
 
     def testButton(self, master):
         def onClick():
@@ -244,13 +285,24 @@ class Zif(Frame):
             o = Label(f, text="-", font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
             o.pack(fill=BOTH, expand=1)
         else:
+            short = StringVar()
+
+            def onClick(code):
+                # short.set(code[0])
+                # b.set_menu("FOO", *self.options)
+                self.repaintPattern()
+                if self.autoTest.get():
+                    self.runTest()
+
             variable = StringVar()
-            b = OptionMenu(f, variable, Zif.testOption, command=onClick, *self.options)
+            b = OptionMenu(f, variable, Zif.defaultOption, command=onClick, *self.options)
             b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
             b.pack(fill=BOTH, expand=1)
+
+            # b["text"] = "FOO"
             self.pinCodes[pin] = variable
 
-    def label(self, master, x, y, text, height, width):
+    def pinNumLabel(self, master, x, y, text, height, width):
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0)  # don't shrink
         f.pack()
@@ -279,7 +331,7 @@ class Zif(Frame):
         f = Frame(master, width=Zif.width, height=Zif.patternHeight)
         f.pack_propagate(0)  # don't shrink
         f.pack()
-        f.place(x=Zif.zifPosX, y=Zif.height + 20)
+        f.place(x=Zif.zifPosX, y=self.zifPosY + Zif.height + 20)
 
         o = Entry(f, font=("courier", 9),
                   textvariable=self.testPattern, width=Zif.width,
@@ -299,27 +351,24 @@ class Zif(Frame):
             self.comPortVar.set(code)
 
         ports = self.getPorts()
-        if len(ports) == 1:
-            onClick(ports[0])
-        else:
-            # ports = ["com5", "com6"]
-            f = Frame(master, width=Zif.width, height=Zif.patternHeight)
-            f.pack_propagate(0)  # don't shrink
-            f.pack()
-            f.place(x=Zif.zifPosX, y=Zif.height + 60)
+        # ports = ["com5", "com6"]
+        f = Frame(master, width=Zif.width, height=Zif.patternHeight)
+        f.pack_propagate(0)  # don't shrink
+        f.pack()
+        f.place(x=Zif.zifPosX, y=self.zifPosY + Zif.height + 60)
 
-            ignored = StringVar()
-            lastPort = "choose port"
-            b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
-            b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
-            b.pack(fill=BOTH, expand=1)
+        ignored = StringVar()
+        lastPort = "choose port"
+
+        b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
+        b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
+        b.pack(fill=BOTH, expand=1)
 
     def repaintPattern(self):
         pattern = ""
 
         for pin in sorted(self.pinCodes.keys()):
-            pinVar = self.pinCodes[pin]
-            code = pinVar.get()[0]
+            code = self.pinCodes[pin].get()[0]
             pattern = pattern + code
 
         half = int(len(pattern)/2)
@@ -352,26 +401,40 @@ class Zif(Frame):
         elif result.startswith("RESULT"):
             resp = result.replace("RESULT : ", "").strip()
             for ipin in range(0, self.pins):
+                fg = "black"
+                code = resp[ipin]
                 incode = "-"
                 if ipin in self.pinCodes:
                     incode = self.pinCodes[ipin].get()[0]
-                code = resp[ipin]
+
                 if code == "-":
                     # not a pin
-                    self.pinControls[ipin].configure(background="gray95")
+                    self.pinControls[ipin].configure(background="gray95", foreground=fg)
                 elif code == "_":
                     # was in input
                     code = incode
-                    self.pinControls[ipin].configure(background="white")
+                    color = "white"
+                    if code == "V":  # was an assertion to not ok
+                        fg = "red"
+                    elif code == "G":
+                        fg = "green"
+                    elif code == "C":
+                        fg = "blue"
+                    elif code == "1":
+                        fg = "red"
+                    elif code == "0":
+                        fg = "green"
+                    self.pinControls[ipin].configure(background=color, foreground=fg)
                 elif code == ".":
                     # was ok
                     code = incode
-                    self.pinControls[ipin].configure(background="pale green")
-                else:  # might be ok cos this could be a "S" or "?"
+                    self.pinControls[ipin].configure(background="pale green", foreground=fg)
+                else:
+                    # might be ok cos this could be a "S" or "?"
                     color = "yellow"
                     if incode in "HLZ":  # was an assertion to not ok
                         color = "red"
-                    self.pinControls[ipin].configure(background=color)
+                    self.pinControls[ipin].configure(background=color, foreground=fg)
 
                 self.pinLabels[ipin].set(code)
 

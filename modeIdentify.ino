@@ -4,11 +4,8 @@
 #include "tester_wires.h"
 
 const char* const chips[] PROGMEM = {
-  CHIP_EMPTY,
-  CHIP_74138,
-  CHIP_x74245, 
-  CHIP_x74173,
-  CHIP_7400,
+ CHIP_EMPTY, 
+ CHIP_7400,
  CHIP_7401,
  CHIP_7402,
  CHIP_7403,
@@ -53,7 +50,8 @@ const char* const chips[] PROGMEM = {
  CHIP_74165,
  CHIP_74166,
  CHIP_7417,
- CHIP_74173,
+ CHIP_x74173,
+ //CHIP_74173,
  CHIP_74174,
  CHIP_74175,
  CHIP_7418,
@@ -70,6 +68,7 @@ const char* const chips[] PROGMEM = {
  CHIP_74237,
  CHIP_74242,
  CHIP_74243,
+ CHIP_x74245, 
  CHIP_7425,
  CHIP_74251,
  CHIP_74253,
