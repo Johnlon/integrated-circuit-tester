@@ -63,22 +63,24 @@ class Zif(Frame):
     pinHeight = 25
     pinWidth = 50
 
+    height = marginTop + marginBot + (pitchVert * (rows - 1))
+    width = socketWidth+50
+
     selectorSize = 100  # width fine tuned to only show first letter of selection when collapsed
     selectorHeight = 25
+
+    patternWidth = socketWidth
     patternHeight = 30
 
     testButtonSize = 30
 
-    height = marginTop + marginBot + (pitchVert * (rows - 1))
-    width = 250
-
     zifPosX = 150
-    zifPosY = 30
+    zifPosY = 80
 
-    defaultOption = "S  Sample"
     options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
                "X  don't care",
-               "?  test", defaultOption]
+               "?  test", "S  sample"]
+    defaultOption = 10
 
     surfaceCol = "#EEE"
 
@@ -100,7 +102,7 @@ class Zif(Frame):
     def initUI(self):
 
         spaceUnderZif = self.zifPosY + 100
-        self.config(height=Zif.height + spaceUnderZif, width=Zif.width, background="white", borderwidth=0,
+        self.config(height=Zif.height + spaceUnderZif, width=Zif.width*2, background="white", borderwidth=0,
                     highlightthickness=0)
 
         canvasTop = Canvas(self, height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white",
@@ -246,7 +248,7 @@ class Zif(Frame):
                     self.runTest()
 
             variable = StringVar()
-            b = OptionMenu(f, variable, Zif.defaultOption, command=onClick, *self.options)
+            b = OptionMenu(f, variable, self.options[Zif.defaultOption], command=onClick, *self.options)
             b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
             b.pack(fill=BOTH, expand=1)
 
@@ -278,13 +280,13 @@ class Zif(Frame):
         self.pinControls[pin] = o
 
     def patternField(self, master):
-        f = Frame(master, width=Zif.width, height=Zif.patternHeight)
+        f = Frame(master, width=self.patternWidth, height=Zif.patternHeight)
         f.pack_propagate(0)  # don't shrink
         f.pack()
         f.place(x=Zif.zifPosX, y=self.zifPosY + Zif.height + 20)
 
         o = Entry(f, font=("courier", 9),
-                  textvariable=self.testPattern, width=Zif.width,
+                  textvariable=self.testPattern, width=self.patternWidth,
                   justify=CENTER)
         o.pack(fill=BOTH, expand=1)
 
@@ -300,12 +302,13 @@ class Zif(Frame):
         def onClick(code):
             self.comPortVar.set(code)
 
+        gap = 30
         ports = self.getPorts()
         # ports = ["com5", "com6"]
-        f = Frame(master, width=Zif.width, height=Zif.patternHeight)
+        f = Frame(master, width=Zif.socketWidth-(2*gap), height=Zif.patternHeight)
         f.pack_propagate(0)  # don't shrink
         f.pack()
-        f.place(x=Zif.zifPosX, y=self.zifPosY + Zif.height + 60)
+        f.place(x=10, y=2)
 
         ignored = StringVar()
         lastPort = "choose port"
