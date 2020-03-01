@@ -17,46 +17,6 @@ elif os.name == 'posix':
 else:
     raise ImportError("Sorry: no implementation for your platform ('{}') available".format(os.name))
 
-
-class MyOptionMenu(Menubutton):
-    """OptionMenu which allows the user to select a value from a menu."""
-
-    def __init__(self, master, variable, value, *values, **kwargs):
-        """Construct an optionmenu widget with the parent MASTER, with
-        the resource textvariable set to VARIABLE, the initially selected
-        value VALUE, the other menu values VALUES and an additional
-        keyword argument command."""
-        kw = {"borderwidth": 2, "textvariable": variable,
-              "indicatoron": 1, "relief": RAISED, "anchor": "c",
-              "highlightthickness": 2}
-        Widget.__init__(self, master, "menubutton", kw)
-        self.widgetName = 'tk_optionMenu'
-        menu = self.__menu = Menu(self, name="menu", tearoff=0)
-        self.menuname = menu._w
-        # 'command' is the only supported keyword
-        callback = kwargs.get('command')
-        if 'command' in kwargs:
-            del kwargs['command']
-        if kwargs:
-            raise TclError('unknown option -'+kwargs.keys()[0])
-        menu.add_command(label=value,
-                         command=tk._setit(variable, value, callback))
-        for v in values:
-            menu.add_command(label=v,
-                             command=tk._setit(variable, v, callback))
-        self["menu"] = menu
-
-    def __getitem__(self, name):
-        if name == 'menu':
-            return self.__menu
-        return Widget.__getitem__(self, name)
-
-    def destroy(self):
-        """Destroy this widget and the associated menu."""
-        Menubutton.destroy(self)
-        self.__menu = None
-
-
 def quit(event):
     print("Double Click, so let's stop")
     import sys;
@@ -103,16 +63,16 @@ class Zif(Frame):
     pinHeight = 25
     pinWidth = 50
 
-    selectorSize = 45  # width fine tuned to only show first letter of selection when collapsed
+    selectorSize = 100  # width fine tuned to only show first letter of selection when collapsed
     selectorHeight = 25
     patternHeight = 30
 
     testButtonSize = 30
 
     height = marginTop + marginBot + (pitchVert * (rows - 1))
-    width = 200
+    width = 250
 
-    zifPosX = 100
+    zifPosX = 150
     zifPosY = 30
 
     defaultOption = "S  Sample"
@@ -185,7 +145,7 @@ class Zif(Frame):
 
         # thread to read and print data from arduino
         sinput_thread = threading.Thread(target=self.serialLoop)
-        sinput_thread.daemon = True
+        sinput_thread.setDaemon(True)
         sinput_thread.start()
 
     def writeLog(self, txt):
@@ -271,11 +231,6 @@ class Zif(Frame):
 
     def optionMenu(self, master, x, y, height, width, pin):
 
-        def onClick(code):
-            self.repaintPattern()
-            if self.autoTest.get():
-                self.runTest()
-
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0)  # don't shrink
         f.pack()
@@ -285,11 +240,7 @@ class Zif(Frame):
             o = Label(f, text="-", font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
             o.pack(fill=BOTH, expand=1)
         else:
-            short = StringVar()
-
             def onClick(code):
-                # short.set(code[0])
-                # b.set_menu("FOO", *self.options)
                 self.repaintPattern()
                 if self.autoTest.get():
                     self.runTest()
@@ -299,7 +250,6 @@ class Zif(Frame):
             b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
             b.pack(fill=BOTH, expand=1)
 
-            # b["text"] = "FOO"
             self.pinCodes[pin] = variable
 
     def pinNumLabel(self, master, x, y, text, height, width):
