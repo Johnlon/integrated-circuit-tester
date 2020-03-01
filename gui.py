@@ -92,6 +92,12 @@ class Zif(Frame):
         self.autoTest = BooleanVar()
         self.autoTest.set(True)
 
+        self.portSelectorWidget = None
+        self.ports = []
+        self.lastPorts = []
+        self.portSelectorPrompt = "choose port"
+        self.rebuildPortSelector = None
+
         self.comPortVar = StringVar()
         self.arduinoInputQueue = queue.Queue()
 
@@ -299,23 +305,31 @@ class Zif(Frame):
 
     def portSelector(self, master):
 
-        def onClick(code):
-            self.comPortVar.set(code)
-
         gap = 30
-        ports = self.getPorts()
-        # ports = ["com5", "com6"]
+
         f = Frame(master, width=Zif.socketWidth-(2*gap), height=Zif.patternHeight)
         f.pack_propagate(0)  # don't shrink
         f.pack()
         f.place(x=10, y=2)
 
-        ignored = StringVar()
-        lastPort = "choose port"
+        self.lastPorts = []
 
-        b = OptionMenu(f, ignored, lastPort, command=onClick, *ports)
-        b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
-        b.pack(fill=BOTH, expand=1)
+        def repopulate():
+            ports = self.getPorts()
+            if ports != self.lastPorts:
+                self.portSelectorWidget.pack_forget()
+                self.portSelectorWidget = build()
+                self.lastPorts = ports
+
+        def build():
+            self.ports = self.getPorts()
+            b = OptionMenu(f, self.comPortVar, self.portSelectorPrompt, *self.ports)
+            b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
+            b.pack(fill=BOTH, expand=1)
+            return b
+
+        self.portSelectorWidget = build()
+        self.rebuildPortSelector = repopulate
 
     def repaintPattern(self):
         pattern = ""
@@ -393,53 +407,54 @@ class Zif(Frame):
 
     def serialLoop(self):
 
-        ser = None
+        serialPort = None
         current = self.comPortVar.get()
-        if "" == current:
+        if self.portSelectorPrompt == current:
             self.writeLog("Port not open yet\n")
 
         while True:
+            self.rebuildPortSelector()
             try:
                 port = self.comPortVar.get()
-                if port == "":
+                if self.portSelectorPrompt == port:
                     time.sleep(0.1)
                     continue
 
                 if port != current:
                     current = port
-                    if ser:
-                        ser.close()
-                    ser = None
+                    if serialPort:
+                        serialPort.close()
+                    serialPort = None
                 else:
-                    if ser is None:
+                    if serialPort is None:
                         self.writeLog("Connecting: %s\n" % port)
-                        ser = serial.Serial(port, timeout=0.05)
+                        serialPort = serial.Serial(port, timeout=0.05)
 
                         # give arduino a chance to respond
                         time.sleep(0.1)
 
-                    l = ser.readline()
+                    l = serialPort.readline()
                     while len(l) > 0:
                         line = l.decode("utf-8")
                         self.paintResult(line)
-                        l = ser.readline()
+                        l = serialPort.readline()
 
                     # only send one line at a time then process all responses
                     if not self.arduinoInputQueue.empty():
                         w = self.arduinoInputQueue.get()
                         self.writeLog(w.strip() + "\n")
-                        ser.write(w.encode("utf-8"))
-                        ser.write("\n".encode("utf-8"))
+                        serialPort.write(w.encode("utf-8"))
+                        serialPort.write("\n".encode("utf-8"))
 
                         # wait for some response
-                        while ser.in_waiting == 0:
+                        while serialPort.in_waiting == 0:
                             time.sleep(0.05)
 
             except BaseException as e:
-                if ser is not None:
+                if serialPort is not None:
                     self.writeLog("Disconnecting: %s\n" % str(e))
-                    ser.close()
-                    ser = None
+                    serialPort.close()
+                    serialPort = None
                 else:
                     self.writeLog("No Connection: %s\n" % str(e))
                     time.sleep(2)
