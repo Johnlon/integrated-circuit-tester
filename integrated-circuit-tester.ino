@@ -1,6 +1,6 @@
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(57600);
 
   mcp_setup();
   

@@ -80,7 +80,7 @@ class Zif(Frame):
     options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
                "X  don't care",
                "?  test", "S  sample"]
-    defaultOption = 10
+    defaultOption = 9
 
     surfaceCol = "#EEE"
 
@@ -191,7 +191,7 @@ class Zif(Frame):
 
     def macros(self, master):
 
-        def macro(text, y, code, fn=self.runTest):
+        def macro(text, xoffset, y, code, fn=self.runTest):
             def onClick():
                 if code:
                     for pin in sorted(self.pinCodes.keys()):
@@ -200,7 +200,7 @@ class Zif(Frame):
                 fn()
 
             width = 60
-            xpos = Zif.zifPosX + self.socketWidth + 20
+            xpos = Zif.zifPosX + self.socketWidth + 20 + (xoffset*width + xoffset*5)
 
             f = Frame(master, height=20, width=width)
             f.pack_propagate(0)  # don't shrink
@@ -211,11 +211,21 @@ class Zif(Frame):
             b.pack(fill=BOTH, expand=1)
 
         ypos=0
-        macro("All 1", ypos+0, "1")
-        macro("All 0", ypos+21, "0")
-        macro("All S", ypos+42, "S")
-        macro("All Z", ypos+63, "Z")
-        macro("Identify", ypos+84, None, fn=self.runIdentify)
+        macro("All 1", 0, ypos+0, "1")
+        ypos = ypos+21
+        macro("All 0", 0, ypos, "0")
+        ypos = ypos+21
+        macro("All L", 0, ypos, "L")
+        ypos = ypos+21
+        macro("All H", 0, ypos, "H")
+        ypos = 0
+        macro("All Z", 1, ypos, "Z")
+        ypos = ypos+21
+        macro("All S", 1, ypos, "S")
+        ypos = ypos+21
+        macro("All ?", 1, ypos, "?")
+        ypos = ypos+21
+        macro("Identify", 1, ypos, None, fn=self.runIdentify)
 
     def testButton(self, master):
         def onClick():
@@ -428,10 +438,14 @@ class Zif(Frame):
                 else:
                     if serialPort is None:
                         self.writeLog("Connecting: %s\n" % port)
-                        serialPort = serial.Serial(port, timeout=0.05)
+                        serialPort = serial.Serial(port, baudrate=57600, timeout=0.05)
 
                         # give arduino a chance to respond
                         time.sleep(0.1)
+
+                        # reset queue
+                        while not self.arduinoInputQueue.empty():
+                            self.arduinoInputQueue.get()
 
                     l = serialPort.readline()
                     while len(l) > 0:
