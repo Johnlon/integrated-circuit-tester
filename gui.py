@@ -13,9 +13,10 @@ if os.name == 'nt':  # sys.platform == 'win32':
     from serial.tools.list_ports_windows import comports
 elif os.name == 'posix':
     from serial.tools.list_ports_posix import comports
-    #~ elif os.name == 'java':
+    # ~ elif os.name == 'java':
 else:
     raise ImportError("Sorry: no implementation for your platform ('{}') available".format(os.name))
+
 
 def quit(event):
     print("Double Click, so let's stop")
@@ -43,6 +44,38 @@ class TextScrollCombo(ttk.Frame):
         scrollb.grid(row=0, column=1, sticky='nsew')
         self.txt['yscrollcommand'] = scrollb.set
 
+
+class CreateToolTip(object):
+    '''
+    create a tooltip for a given widget
+    '''
+
+    def __init__(self, widget, text='widget info'):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+
+    def enter(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = tk.Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(self.tw, text=self.text, justify='left',
+                         background='yellow', relief='solid', borderwidth=1,
+                         font=("courier", "9", "normal"))
+        label.pack(ipadx=1)
+
+    def close(self, event=None):
+        if self.tw:
+            self.tw.destroy()
+
+
 class Zif(Frame):
     USE_v1_HACK = True
 
@@ -52,7 +85,7 @@ class Zif(Frame):
 
     rows = pins / 2
 
-    pitchVert = 30
+    pitchVert = 40
 
     marginSide = 20
     marginTop = 100
@@ -64,7 +97,7 @@ class Zif(Frame):
     pinWidth = 50
 
     height = marginTop + marginBot + (pitchVert * (rows - 1))
-    width = socketWidth+50
+    width = socketWidth + 50
 
     selectorSize = 100  # width fine tuned to only show first letter of selection when collapsed
     selectorHeight = 25
@@ -77,14 +110,15 @@ class Zif(Frame):
     zifPosX = 150
     zifPosY = 80
 
-    options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
-               "X  don't care",
-               "?  test", "S  sample"]
-    defaultOption = 9
+    if USE_v1_HACK:
+        pinCountOptions = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+    else:
+        pinCountOptions = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
 
     surfaceCol = "#EEE"
 
     def __init__(self, parent, *args, **kwargs):
+        self.pinNumLabels = {}
         self.pinLabels = {}
         self.pinControls = {}
         self.pinCodes = {}
@@ -103,12 +137,13 @@ class Zif(Frame):
 
         tk.Frame.__init__(self, parent)
         self.initUI()
+
         self.startResponseThread()
 
     def initUI(self):
 
-        spaceUnderZif = self.zifPosY + 100
-        self.config(height=Zif.height + spaceUnderZif, width=Zif.width*2, background="white", borderwidth=0,
+        spaceUnderZif = self.zifPosY + 50
+        self.config(height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white", borderwidth=0,
                     highlightthickness=0)
 
         canvasTop = Canvas(self, height=Zif.height + spaceUnderZif, width=Zif.width * 2, background="white",
@@ -123,21 +158,26 @@ class Zif(Frame):
         canvasTop.create_rectangle(Zif.zifPosX + 18, Zif.zifPosY + 5, Zif.zifPosX + 42, Zif.zifPosY + 30, width=1,
                                    outline="black", fill="#EEE");
 
-        self.patternField(canvasTop)
         self.portSelector(canvasTop)
+        self.pinCountSelector(canvasTop)
+        self.patternField(canvasTop)
         self.testButton(canvasTop)
         self.autoCheckbox(canvasTop)
         self.macros(canvasTop)
 
         for pin in range(0, self.pins):
             self.pinNumLabel(canvasTop, x=self.labelPosH(pin), y=self.pinPosV(pin), text=str(pin + 1),
-                    width=Zif.labelSize, height=Zif.labelSize)
+                             width=Zif.labelSize, height=Zif.labelSize, pin=pin)
 
             self.pin(canvasTop, x=self.pinPosH(pin), y=self.pinPosV(pin),
                      width=Zif.pinWidth, height=Zif.pinHeight, pin=pin)
 
-            self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin),
-                    width=Zif.selectorSize, height=Zif.selectorHeight, pin=pin)
+            # render as buttons or drop down?
+            buttons=False
+            if buttons:
+                self.optionButtons(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin), pin=pin)
+            else:
+                self.optionMenu(canvasTop, x=self.selectorPosH(pin), y=self.pinPosV(pin), pin=pin)
 
         # right hand log pane
         self.comms = TextScrollCombo(self, height=30, width=40)
@@ -200,7 +240,7 @@ class Zif(Frame):
                 fn()
 
             width = 60
-            xpos = Zif.zifPosX + self.socketWidth + 20 + (xoffset*width + xoffset*5)
+            xpos = Zif.zifPosX + self.socketWidth + 20 + (xoffset * width + xoffset * 5)
 
             f = Frame(master, height=20, width=width)
             f.pack_propagate(0)  # don't shrink
@@ -210,21 +250,21 @@ class Zif(Frame):
             b = tk.Button(f, text=text, bg="bisque2", command=onClick)
             b.pack(fill=BOTH, expand=1)
 
-        ypos=0
-        macro("All 1", 0, ypos+0, "1")
-        ypos = ypos+21
+        ypos = 0
+        macro("All 1", 0, ypos + 0, "1")
+        ypos = ypos + 21
         macro("All 0", 0, ypos, "0")
-        ypos = ypos+21
-        macro("All L", 0, ypos, "L")
-        ypos = ypos+21
+        ypos = ypos + 21
         macro("All H", 0, ypos, "H")
+        ypos = ypos + 21
+        macro("All L", 0, ypos, "L")
         ypos = 0
         macro("All Z", 1, ypos, "Z")
-        ypos = ypos+21
+        ypos = ypos + 21
         macro("All S", 1, ypos, "S")
-        ypos = ypos+21
+        ypos = ypos + 21
         macro("All ?", 1, ypos, "?")
-        ypos = ypos+21
+        ypos = ypos + 21
         macro("Identify", 1, ypos, None, fn=self.runIdentify)
 
     def testButton(self, master):
@@ -247,7 +287,80 @@ class Zif(Frame):
         cb = tk.Checkbutton(master, text="Auto", height=1, width=3, bg="white", variable=self.autoTest)
         cb.place(x=xpos, y=4)
 
-    def optionMenu(self, master, x, y, height, width, pin):
+    def optionButtons(self, parent, x, y, pin):
+        def click():
+            self.repaintPattern()
+            if self.autoTest.get():
+                self.runTest()
+
+
+        f = Frame(parent)
+        f.pack_propagate(0)  # don't shrink
+        f.pack()
+        f.place(x=x, y=y)
+
+        v = tk.StringVar()
+        v.set("?")
+        self.pinCodes[pin] = v
+
+        buttons = [
+            ("1 input", "red3"),
+            ("Vcc", "red3"),
+            ("Clock input", "brown"),
+            (None, "white"),
+
+            ("High output expected", "red3"),
+            ("Z output expected", "black"),
+            (None, "white"),
+            ("? active test", "blue"),
+
+            ("0 input", "green"),
+            ("GND", "green"),
+            ("-", "white"),
+            (None, "white"),
+
+            ("Low output expected", "green"),
+            ("X don't care", "black"),
+            (None, "white"),
+            ("S sample passive voltage", "blue"),
+        ]
+
+        p = 0
+        for text, fg in buttons:
+            t = int(len(buttons) / 2)
+            row = int(p / t)
+            col = p % t
+
+            width = 16
+            if text is None:
+                width = 3
+
+            # mini frame needed to fix size of control
+            fb = Frame(f, height=18, width=width)
+            fb.pack_propagate(0)  # don't shrink
+            fb.grid(row=row, column=col)
+
+            if text is not None and text != "-":
+                c = text[0]
+                b = tk.Radiobutton(fb, text=c, variable=v, value=c, indicatoron=0, anchor="c",
+                                   font=("courier", 8), command=click, fg=fg, bg="white", selectcolor="yellow", borderwidth=1)
+
+                CreateToolTip(b, text)
+            else:
+                b = tk.Label(fb, text="", bg="white")
+
+            b.pack(fill=BOTH, expand=1)
+            p = p + 1
+
+    def optionMenu(self, master, x, y, pin):
+
+        options = ["0  in", "1  in", "V  in", "G  in", "C  in", "L  expected", "H  expected", "Z  expected",
+                   "X  don't care",
+                   "?  test", "S  sample"]
+        defaultOption = 9
+
+        width=Zif.selectorSize
+        height=Zif.selectorHeight,
 
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0)  # don't shrink
@@ -264,13 +377,13 @@ class Zif(Frame):
                     self.runTest()
 
             variable = StringVar()
-            b = OptionMenu(f, variable, self.options[Zif.defaultOption], command=onClick, *self.options)
+            b = OptionMenu(f, variable, options[defaultOption], command=onClick, *options)
             b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
             b.pack(fill=BOTH, expand=1)
 
             self.pinCodes[pin] = variable
 
-    def pinNumLabel(self, master, x, y, text, height, width):
+    def pinNumLabel(self, master, x, y, text, height, width, pin):
         f = Frame(master, height=height, width=width)
         f.pack_propagate(0)  # don't shrink
         f.pack()
@@ -278,6 +391,7 @@ class Zif(Frame):
 
         o = Label(f, text=text, font=("courier", 9), background=Zif.surfaceCol, borderwidth=0, anchor="center")
         o.pack(fill=BOTH, expand=1)
+        self.pinNumLabels[pin] = o
 
     def pin(self, master, x, y, height, width, pin):
         f = Frame(master, height=height, width=width)
@@ -308,7 +422,7 @@ class Zif(Frame):
 
     def getPorts(self):
         iterator = sorted(comports(include_links=False))
-        ports=[]
+        ports = []
         for n, (port, desc, hwid) in enumerate(iterator, 1):
             ports.append(port)
         return ports
@@ -317,7 +431,7 @@ class Zif(Frame):
 
         gap = 30
 
-        f = Frame(master, width=Zif.socketWidth-(2*gap), height=Zif.patternHeight)
+        f = Frame(master, width=Zif.socketWidth - (2 * gap), height=Zif.patternHeight)
         f.pack_propagate(0)  # don't shrink
         f.pack()
         f.place(x=10, y=2)
@@ -341,6 +455,34 @@ class Zif(Frame):
         self.portSelectorWidget = build()
         self.rebuildPortSelector = repopulate
 
+    def pinCountSelector(self, master):
+        def onClick(count):
+            validRows = count / 2
+            pcount = 0
+            for ipin in range(0, self.pins):
+                row = self.rowOfPin(ipin)
+                if self.USE_v1_HACK and (ipin == 0 or ipin == 23):
+                    label = "-"
+                elif row <= validRows:
+                    pcount = pcount + 1
+                    label = str(pcount)
+                else:
+                    label = "-"
+                self.pinNumLabels[ipin]["text"] = label
+
+        gap = 30
+
+        f = Frame(master, width=Zif.socketWidth - (2 * gap), height=Zif.patternHeight)
+        f.pack_propagate(0)  # don't shrink
+        f.pack()
+        f.place(x=10, y=40)
+
+        ignored = IntVar()
+        self.ports = self.getPorts()
+        b = OptionMenu(f, ignored, "pin count", command=onClick, *self.pinCountOptions)
+        b["menu"].config(bg="white", font=("courier", 9), activebackground="cornflower blue", selectcolor="green")
+        b.pack(fill=BOTH, expand=1)
+
     def repaintPattern(self):
         pattern = ""
 
@@ -348,7 +490,7 @@ class Zif(Frame):
             code = self.pinCodes[pin].get()[0]
             pattern = pattern + code
 
-        half = int(len(pattern)/2)
+        half = int(len(pattern) / 2)
         split1 = pattern[0:half]
         split2 = pattern[half: len(pattern)]
         cut = split1 + "/" + split2
@@ -364,12 +506,12 @@ class Zif(Frame):
         self.arduinoInputQueue.put(pat)
 
     def runIdentify(self):
-            port = self.comPortVar.get()
-            if port == "":
-                self.writeLog("Port not open yet\n")
-                return
+        port = self.comPortVar.get()
+        if port == "":
+            self.writeLog("Port not open yet\n")
+            return
 
-            self.arduinoInputQueue.put("i")
+        self.arduinoInputQueue.put("i")
 
     def paintResult(self, result):
         self.writeLog("%s" % result)
